@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.Cowboy" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#456348</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#B36A35</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="android:statusBarColor">#F7F8F4</item>
+        <item name="android:navigationBarColor">#F7F8F4</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Cowboy</string>
+    <string name="welcome_message">Cowboy is ready</string>
+</resources>
