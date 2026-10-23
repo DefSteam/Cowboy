@@ -486,15 +486,6 @@ public final class MainActivity extends Activity {
                             break;
                         }
                     }
-                    if (downloadUrl.isEmpty()) {
-                        for (int i = 0; i < assets.length(); i++) {
-                            JSONObject asset = assets.optJSONObject(i);
-                            if (asset != null && "Cowboy.apk".equals(asset.optString("name"))) {
-                                downloadUrl = asset.optString("browser_download_url", "");
-                                break;
-                            }
-                        }
-                    }
                 }
                 if (downloadUrl.isEmpty()) {
                     throw new Exception("The latest release has no " + assetName + " asset.");

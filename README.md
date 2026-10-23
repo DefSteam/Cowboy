@@ -42,8 +42,16 @@ To build and publish a GitHub Release with the APK attached:
 ./release.sh
 ```
 
-The script stages and commits local changes, pushes the current branch to `origin`, then builds the APK locally and creates release tag `v<versionName>` at that pushed commit. It uploads the APK as `Cowboy-<versionName>.apk` and `Cowboy.apk` (the compatibility name for older app builds). Increase both `versionName` and `versionCode` for each release. The default release repository is `DefSteam/Cowboy`; set `COWBOY_RELEASE_REPO=OWNER/REPO` to publish to a different repository.
+The script stages and commits local changes, pushes the current branch to `origin`, then builds the APK locally and creates release tag `v<versionName>` at that pushed commit. It uploads one APK, named `Cowboy-<versionName>.apk`. Increase both `versionName` and `versionCode` for each release. The default release repository is `DefSteam/Cowboy`; set `COWBOY_RELEASE_REPO=OWNER/REPO` to publish to a different repository.
 
-If that release tag already exists, `release.sh` offers to add a `Cowboy.apk` compatibility asset to the existing release or increment the patch version (for example, `0.1.0` to `0.1.1`) and `versionCode` before pushing and publishing the next release.
+If that release tag already exists, `release.sh` offers to increment the patch version (for example, `0.1.0` to `0.1.1`) and `versionCode` before pushing and publishing the next release.
 
-**Check for update** asks GitHub for the latest public release. If a newer `v<versionName>` release is available, Cowboy downloads its matching `Cowboy-<versionName>.apk` asset and opens Android’s package installer. The first update may ask you to allow installs from Cowboy in Android settings. The update APK must be signed with the same local debug key as the installed app; building and releasing from the same computer preserves that key. The repository must be public for anonymous in-app checks and downloads.
+To remove every existing GitHub Release and its tag, then publish a clean versioned release, run:
+
+```sh
+./release.sh --purge-existing-releases
+```
+
+This deletes all releases and release tags from the selected repository. When releases exist, the script increments the patch version and `versionCode` before publishing the replacement release.
+
+**Check for update** asks GitHub for the latest public release. If a newer `v<versionName>` release is available, Cowboy downloads the matching `Cowboy-<versionName>.apk` asset and opens Android’s package installer. The first update may ask you to allow installs from Cowboy in Android settings. The update APK must be signed with the same local debug key as the installed app; building and releasing from the same computer preserves that key. The repository must be public for anonymous in-app checks and downloads.
