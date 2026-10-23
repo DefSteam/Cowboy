@@ -25,12 +25,22 @@ TAG="v$VERSION_NAME"
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
     echo "Release $TAG already exists in $REPO."
     if [[ ! -t 0 ]]; then
-        echo "Run this script in a terminal to choose whether to bump the version." >&2
+        echo "Run this script in a terminal to add a compatibility APK or bump the version." >&2
         exit 1
     fi
-    read -r -p "Bump to the next patch version and increment versionCode? [y/N] " answer
+    read -r -p "Add Cowboy.apk to this release for older app builds [a], bump version [b], or cancel [c]? " answer
     case "$answer" in
-        y|Y|yes|YES|Yes) ;;
+        a|A)
+            "$ROOT_DIR/build.sh" :app:assembleDebug
+            if [[ ! -f "$APK" ]]; then
+                echo "Build finished but APK was not found at $APK." >&2
+                exit 1
+            fi
+            gh release upload "$TAG" "$APK#Cowboy.apk" --repo "$REPO"
+            echo "Added Cowboy.apk compatibility asset to release $TAG."
+            exit 0
+            ;;
+        b|B|y|Y|yes|YES|Yes) ;;
         *) echo "Release cancelled. No version changes were made."; exit 1 ;;
     esac
 
@@ -69,7 +79,7 @@ if [[ ! -f "$APK" ]]; then
     exit 1
 fi
 
-gh release create "$TAG" "$APK#Cowboy-$VERSION_NAME.apk" \
+gh release create "$TAG" "$APK#Cowboy-$VERSION_NAME.apk" "$APK#Cowboy.apk" \
     --repo "$REPO" \
     --target main \
     --title "Cowboy $VERSION_NAME" \
