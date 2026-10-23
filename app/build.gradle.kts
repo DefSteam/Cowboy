@@ -6,6 +6,10 @@ android {
     namespace = "com.cowboy.app"
     compileSdk = 37
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.cowboy.app"
         minSdk = 23
