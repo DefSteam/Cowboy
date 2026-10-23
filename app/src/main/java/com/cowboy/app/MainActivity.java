@@ -244,9 +244,18 @@ public final class MainActivity extends Activity {
     private void showToday() {
         LinearLayout body = body();
         List<AnimalRecord> records = recordsForDate(today());
-        addHeading(body, "Today's list", formatDate(today()) + " · " + records.size() + (records.size() == 1 ? " animal" : " animals"));
-        if (records.isEmpty()) addText(body, "No animals recorded yet. Start with the first sick animal you find.", 16, false);
+        List<AnimalRecord> watchlist = watchlistRecords();
+        addHeading(body, "Today's list", formatDate(today()) + " · " + records.size()
+                + (records.size() == 1 ? " animal" : " animals")
+                + (watchlist.isEmpty() ? "" : " · " + watchlist.size() + " to check"));
+        if (records.isEmpty() && watchlist.isEmpty()) {
+            addText(body, "No animals recorded yet. Start with the first sick animal you find.", 16, false);
+        }
         for (AnimalRecord record : records) addRecordCard(body, record, true);
+        if (!watchlist.isEmpty()) {
+            addText(body, "Check from earlier", 20, true);
+            for (AnimalRecord record : watchlist) addRecordCard(body, record, true);
+        }
         addPrimaryButton(body, "Enter another sick animal", this::showNewRecord);
         showPage("Today's list", body, true);
     }
@@ -279,6 +288,11 @@ public final class MainActivity extends Activity {
         MaterialCardView card = card(parent);
         LinearLayout content = column(card);
         addText(content, "Pen " + record.pen, 19, true);
+        if (!record.watchlistFromDate.isEmpty()) {
+            addText(content, "Added to today's pull list from " + formatDate(record.watchlistFromDate), 14, true);
+        } else if (record.watchlist && !today().equals(record.date)) {
+            addText(content, "Watchlist · from " + formatDate(record.date), 14, true);
+        }
         addText(content, (record.animalTag.isEmpty() ? "Tag missing / unreadable" : "Tag " + record.animalTag)
                 + " · " + record.animalColor, 15, false);
         addText(content, record.issue, 16, true);
@@ -294,19 +308,99 @@ public final class MainActivity extends Activity {
         if (!record.treatmentNotes.isEmpty()) addText(content, "Notes · " + record.treatmentNotes, 14, false);
         if (!record.destinationPen.isEmpty()) addText(content, "Moved to · " + record.destinationPen, 14, false);
         if (actions) {
-            if (!"Pulled".equals(record.status) && !"Treated".equals(record.status)) {
+            if (record.watchlist && !today().equals(record.date)) {
+                addPrimaryButton(content, "Mark to pull today", () -> pullFromWatchlist(record));
+                addSecondaryButton(content, "Confirm looks fine", () -> resolveWatchlist(record));
+            } else if ("Pulled".equals(record.status)) {
+                addSecondaryButton(content, "Undo mark pulled", () -> setStatus(record, "Needs pulling"));
+            } else if (!"Treated".equals(record.status) && !"Looks fine".equals(record.status)) {
                 addSecondaryButton(content, "Mark pulled", () -> setStatus(record, "Pulled"));
-            }
-            if (!"Treated".equals(record.status)) addPrimaryButton(content, "Record treatment", () -> showTreatment(record));
-            if (!"Could not find".equals(record.status) && !"Treated".equals(record.status)) {
-                addSecondaryButton(content, "Could not find", () -> setStatus(record, "Could not find"));
+                addPrimaryButton(content, "Record treatment", () -> showTreatment(record));
+                addSecondaryButton(content, "Looks fine / eating", () -> showLooksFineOptions(record));
+            } else if ("Looks fine".equals(record.status)) {
+                addSecondaryButton(content, "Add to watchlist", () -> addToWatchlist(record));
             }
         }
     }
 
+    private void showLooksFineOptions(AnimalRecord target) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Animal looks fine")
+                .setMessage("Leave it off the pull list, or add it to tomorrow's watchlist?")
+                .setNegativeButton("Cancel", null)
+                .setNeutralButton("Leave alone", (dialog, which) -> updateRecord(target, record -> {
+                    record.status = "Looks fine";
+                    record.watchlist = false;
+                }))
+                .setPositiveButton("Watch tomorrow", (dialog, which) -> addToWatchlist(target))
+                .show();
+    }
+
+    private void addToWatchlist(AnimalRecord target) {
+        updateRecord(target, record -> {
+            record.status = "Watchlist";
+            record.watchlist = true;
+        });
+    }
+
+    private void resolveWatchlist(AnimalRecord target) {
+        updateRecord(target, record -> {
+            record.status = "Looks fine";
+            record.watchlist = false;
+        });
+    }
+
+    private void pullFromWatchlist(AnimalRecord target) {
+        List<AnimalRecord> records = store.records();
+        AnimalRecord pulledForward = copyForToday(target);
+        for (AnimalRecord record : records) if (record.id.equals(target.id)) {
+            record.watchlist = false;
+            record.status = "Added to today's pull list";
+        }
+        records.add(pulledForward);
+        store.saveRecords(records);
+        showToday();
+    }
+
+    private AnimalRecord copyForToday(AnimalRecord source) {
+        AnimalRecord copy = new AnimalRecord();
+        copy.id = UUID.randomUUID().toString();
+        copy.date = today();
+        copy.createdAt = System.currentTimeMillis();
+        copy.pen = source.pen;
+        copy.issue = source.issue;
+        copy.animalColor = source.animalColor;
+        copy.animalTag = source.animalTag;
+        copy.notes = source.notes;
+        copy.symptoms = new ArrayList<>(source.symptoms);
+        copy.appearance = new ArrayList<>(source.appearance);
+        copy.status = "Needs pulling";
+        copy.treatTag = source.treatTag;
+        copy.treatTagColor = source.treatTagColor;
+        copy.treatedWith = source.treatedWith;
+        copy.treatmentNotes = source.treatmentNotes;
+        copy.destinationPen = source.destinationPen;
+        copy.treatedAt = source.treatedAt;
+        copy.lastTreatDate = source.lastTreatDate;
+        copy.watchlistFromDate = source.date;
+        return copy;
+    }
+
+    private interface RecordUpdate { void apply(AnimalRecord record); }
+
+    private void updateRecord(AnimalRecord target, RecordUpdate update) {
+        List<AnimalRecord> records = store.records();
+        for (AnimalRecord record : records) if (record.id.equals(target.id)) update.apply(record);
+        store.saveRecords(records);
+        showToday();
+    }
+
     private void setStatus(AnimalRecord target, String status) {
         List<AnimalRecord> records = store.records();
-        for (AnimalRecord record : records) if (record.id.equals(target.id)) record.status = status;
+        for (AnimalRecord record : records) if (record.id.equals(target.id)) {
+            record.status = status;
+            if (!"Watchlist".equals(status)) record.watchlist = false;
+        }
         store.saveRecords(records);
         showToday();
     }
@@ -339,6 +433,7 @@ public final class MainActivity extends Activity {
                         record.treatmentNotes = text(notes);
                         record.destinationPen = destination[0];
                         record.status = "Treated";
+                        record.watchlist = false;
                         record.treatedAt = System.currentTimeMillis();
                     }
                     store.saveRecords(records);
@@ -681,6 +776,19 @@ public final class MainActivity extends Activity {
             int ap = penOrder.indexOf(a.pen), bp = penOrder.indexOf(b.pen);
             if (ap != bp) return Integer.compare(ap, bp);
             return Long.compare(a.createdAt, b.createdAt);
+        });
+        return result;
+    }
+
+    private List<AnimalRecord> watchlistRecords() {
+        List<AnimalRecord> result = new ArrayList<>();
+        String currentDate = today();
+        for (AnimalRecord record : store.records()) {
+            if (record.watchlist && record.date.compareTo(currentDate) < 0) result.add(record);
+        }
+        Collections.sort(result, (a, b) -> {
+            int byDate = b.date.compareTo(a.date);
+            return byDate != 0 ? byDate : Long.compare(b.createdAt, a.createdAt);
         });
         return result;
     }

@@ -26,6 +26,8 @@ final class AnimalRecord {
     String destinationPen;
     long treatedAt;
     String lastTreatDate;
+    boolean watchlist;
+    String watchlistFromDate = "";
 
     JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();
@@ -47,6 +49,8 @@ final class AnimalRecord {
         json.put("destinationPen", destinationPen);
         json.put("treatedAt", treatedAt);
         json.put("lastTreatDate", lastTreatDate);
+        json.put("watchlist", watchlist);
+        json.put("watchlistFromDate", watchlistFromDate);
         return json;
     }
 
@@ -70,6 +74,8 @@ final class AnimalRecord {
         record.destinationPen = json.optString("destinationPen", "");
         record.treatedAt = json.optLong("treatedAt", 0);
         record.lastTreatDate = json.optString("lastTreatDate", "");
+        record.watchlist = json.optBoolean("watchlist", false);
+        record.watchlistFromDate = json.optString("watchlistFromDate", "");
         return record;
     }
 
