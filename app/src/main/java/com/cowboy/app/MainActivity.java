@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.MenuItem;
@@ -32,9 +33,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -49,10 +54,12 @@ public final class MainActivity extends Activity {
     private static final int EXPORT_CONFIG = 401;
     private static final int IMPORT_CONFIG = 402;
     private static final int MENU_SETTINGS = 501;
+    private static final int MENU_CHECK_UPDATES = 502;
 
     private RecordStore store;
     private FeedlotConfig config;
     private String pendingExport;
+    private File pendingUpdateApk;
     private String pageTitle = "Cowboy";
 
     private interface StringCallback {
@@ -392,9 +399,15 @@ public final class MainActivity extends Activity {
             toolbar.setNavigationContentDescription("Back");
             toolbar.setNavigationOnClickListener(view -> showHome());
         }
-        MenuItem settings = toolbar.getMenu().add(0, MENU_SETTINGS, 0, "Settings");
+        MenuItem updates = toolbar.getMenu().add(0, MENU_CHECK_UPDATES, 0, "Check for update");
+        updates.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+        MenuItem settings = toolbar.getMenu().add(0, MENU_SETTINGS, 1, "Settings");
         settings.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
         toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == MENU_CHECK_UPDATES) {
+                checkForUpdate();
+                return true;
+            }
             if (item.getItemId() == MENU_SETTINGS) { showConfig(); return true; }
             return false;
         });
@@ -406,6 +419,153 @@ public final class MainActivity extends Activity {
         root.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         setContentView(root);
+    }
+
+    private void checkForUpdate() {
+        toast("Checking for updates…");
+        new Thread(() -> {
+            try {
+                JSONObject release = getJson("https://api.github.com/repos/DefSteam/Cowboy/releases/latest");
+                String tag = release.optString("tag_name", "");
+                String current = "v" + BuildConfig.VERSION_NAME;
+                if (tag.isEmpty() || compareVersions(tag, current) <= 0) {
+                    runOnUiThread(() -> toast("Cowboy is up to date"));
+                    return;
+                }
+                String downloadUrl = "";
+                org.json.JSONArray assets = release.optJSONArray("assets");
+                if (assets != null) {
+                    for (int i = 0; i < assets.length(); i++) {
+                        JSONObject asset = assets.optJSONObject(i);
+                        if (asset != null && "Cowboy.apk".equals(asset.optString("name"))) {
+                            downloadUrl = asset.optString("browser_download_url", "");
+                            break;
+                        }
+                    }
+                }
+                if (downloadUrl.isEmpty()) throw new Exception("The latest release has no Cowboy.apk asset.");
+                String finalDownloadUrl = downloadUrl;
+                runOnUiThread(() -> toast("Downloading Cowboy " + tag + "…"));
+                File updatesDir = new File(getCacheDir(), "updates");
+                if (!updatesDir.exists() && !updatesDir.mkdirs()) throw new Exception("Could not create update folder.");
+                File apk = new File(updatesDir, "Cowboy.apk");
+                downloadFile(finalDownloadUrl, apk);
+                runOnUiThread(() -> installUpdate(apk));
+            } catch (Exception e) {
+                String message = e.getMessage() == null ? "Could not check for updates." : e.getMessage();
+                runOnUiThread(() -> new MaterialAlertDialogBuilder(this)
+                        .setTitle("Update check failed")
+                        .setMessage(message)
+                        .setPositiveButton("OK", null)
+                        .show());
+            }
+        }, "cowboy-update-check").start();
+    }
+
+    private JSONObject getJson(String address) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(address).openConnection();
+        connection.setConnectTimeout(15000);
+        connection.setReadTimeout(20000);
+        connection.setRequestProperty("Accept", "application/vnd.github+json");
+        connection.setRequestProperty("User-Agent", "Cowboy-Android-App");
+        try {
+            int status = connection.getResponseCode();
+            if (status != HttpURLConnection.HTTP_OK) {
+                throw new Exception(status == 404
+                        ? "No public Cowboy release was found. Make the repository public and publish a release first."
+                        : "GitHub returned HTTP " + status + ".");
+            }
+            StringBuilder json = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    connection.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) json.append(line);
+            }
+            return new JSONObject(json.toString());
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private void downloadFile(String address, File destination) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(address).openConnection();
+        connection.setConnectTimeout(15000);
+        connection.setReadTimeout(60000);
+        connection.setRequestProperty("User-Agent", "Cowboy-Android-App");
+        try {
+            int status = connection.getResponseCode();
+            if (status != HttpURLConnection.HTTP_OK) throw new Exception("APK download failed (HTTP " + status + ").");
+            try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(destination)) {
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+            }
+            if (destination.length() == 0) throw new Exception("GitHub returned an empty APK.");
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private int compareVersions(String left, String right) {
+        String[] a = left.replaceFirst("^[vV]", "").split("[.-]");
+        String[] b = right.replaceFirst("^[vV]", "").split("[.-]");
+        int length = Math.max(a.length, b.length);
+        for (int i = 0; i < length; i++) {
+            long av = i < a.length ? numericVersionPart(a[i]) : 0;
+            long bv = i < b.length ? numericVersionPart(b[i]) : 0;
+            int compare = Long.compare(av, bv);
+            if (compare != 0) return compare;
+        }
+        return 0;
+    }
+
+    private long numericVersionPart(String part) {
+        String digits = part.replaceAll("[^0-9].*$", "");
+        try { return digits.isEmpty() ? 0 : Long.parseLong(digits); }
+        catch (NumberFormatException e) { return 0; }
+    }
+
+    private void installUpdate(File apk) {
+        pendingUpdateApk = apk;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("Allow Cowboy updates")
+                    .setMessage("Allow installs from Cowboy in Android settings, then return here to finish installing the update.")
+                    .setNegativeButton("Later", (dialog, which) -> pendingUpdateApk = null)
+                    .setPositiveButton("Open settings", (dialog, which) -> {
+                        Intent settings = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                Uri.parse("package:" + getPackageName()));
+                        startActivity(settings);
+                    })
+                    .show();
+            return;
+        }
+        launchInstaller(apk);
+    }
+
+    private void launchInstaller(File apk) {
+        Uri contentUri = androidx.core.content.FileProvider.getUriForFile(this,
+                getPackageName() + ".fileprovider", apk);
+        Intent install = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+        install.setData(contentUri);
+        install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            startActivity(install);
+            pendingUpdateApk = null;
+        } catch (android.content.ActivityNotFoundException e) {
+            toast("Android could not open the package installer");
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (pendingUpdateApk != null && pendingUpdateApk.isFile()
+                && (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getPackageManager().canRequestPackageInstalls())) {
+            File apk = pendingUpdateApk;
+            pendingUpdateApk = null;
+            launchInstaller(apk);
+        }
     }
 
     private List<AnimalRecord> recordsForDate(String date) {

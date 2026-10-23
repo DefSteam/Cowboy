@@ -16,18 +16,28 @@ The interface uses Google's Material Components for Android, including a top app
 - **Today's pull and treatment list:** mark animals pulled, record treatment and notes, add a treatment tag if needed, and select a destination pen.
 - **History:** review each day's records and follow-up status.
 
-## Build a debug APK
+## Build and publish a release locally
 
-Requirements: Java 17 or newer, Gradle 9.6 or newer, and Android SDK Platform 37.
+Requirements: Java 17 or newer, Gradle 9.6 or newer, Android SDK Platform 37, and GitHub CLI (`gh`). Sign in once with `gh auth login`.
+
+Build a debug APK for local testing:
 
 ```sh
 ./build.sh
 ```
 
-The APK is written to `app/build/outputs/apk/debug/app-debug.apk`. You can install it on a connected device with:
+Install it on a connected device with:
 
 ```sh
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-To run another Gradle task, pass its Gradle path as the first argument, for example `./build.sh :app:clean`.
+To build and publish a GitHub Release with the APK attached:
+
+```sh
+./release.sh
+```
+
+The script reads `versionName` from `app/build.gradle.kts`, creates release tag `v<versionName>`, builds the APK locally, and uploads it as `Cowboy.apk`. Increase both `versionName` and `versionCode` for each release. The default release repository is `DefSteam/Cowboy`; set `COWBOY_RELEASE_REPO=OWNER/REPO` to publish to a different repository.
+
+**Check for update** asks GitHub for the latest public release. If a newer `v<versionName>` release is available, Cowboy downloads its `Cowboy.apk` asset and opens Android’s package installer. The first update may ask you to allow installs from Cowboy in Android settings. The update APK must be signed with the same local debug key as the installed app; building and releasing from the same computer preserves that key. The repository must be public for anonymous in-app checks and downloads.
