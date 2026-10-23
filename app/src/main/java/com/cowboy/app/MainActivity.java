@@ -1,6 +1,7 @@
 package com.cowboy.app;
 
 import android.app.Activity;
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -12,6 +13,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.GridLayout;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -43,10 +45,14 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** Material-styled sick-animal entry, pull/treatment, and history flows. */
@@ -101,14 +107,51 @@ public final class MainActivity extends Activity {
         })));
 
         String[] issueValue = {""};
-        addListChoice(body, "What's wrong?", config.issues, issueValue);
+        MaterialButton issueButton = choiceButton(body, "Health category", "Tap to choose");
+        LinearLayout symptomsPanel = new LinearLayout(this);
+        symptomsPanel.setOrientation(LinearLayout.VERTICAL);
+        body.addView(symptomsPanel, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        Set<String> selectedSymptoms = new LinkedHashSet<>();
+        issueButton.setOnClickListener(view -> new MaterialAlertDialogBuilder(this)
+                .setTitle("Health category")
+                .setItems(config.issues.toArray(new String[0]), (dialog, which) -> {
+                    issueValue[0] = config.issues.get(which);
+                    setChoiceText(issueButton, "Health category", issueValue[0]);
+                    selectedSymptoms.clear();
+                    symptomsPanel.removeAllViews();
+                    addText(symptomsPanel, "Symptoms · " + issueValue[0], 16, true);
+                    addFlagChecks(symptomsPanel, config.symptomsByIssue.get(issueValue[0]), selectedSymptoms);
+                }).setNegativeButton("Cancel", null).show());
         String[] animalColor = {""};
         addListChoice(body, "Animal color", config.animalColors, animalColor);
         TextInputLayout tagField = addInput(body, "Animal tag number", "Leave blank if missing or unreadable", false);
-        TextInputLayout notesField = addInput(body, "What is wrong / how it looks", "Add details that help identify the animal", true);
-        TextInputLayout treatTagField = addInput(body, "Treat tag number", "Optional", false);
+        tagField.getEditText().setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        addText(body, "How the animal looks", 16, true);
+        Set<String> selectedAppearance = new LinkedHashSet<>();
+        addFlagChecks(body, config.appearanceFlags, selectedAppearance);
+        TextInputLayout notesField = addInput(body, "Other details", "Optional notes", true);
         String[] treatColor = {""};
-        addListChoice(body, "Treat tag color (optional)", withNone(config.treatTagColors), treatColor);
+        addText(body, "Treat tag", 16, true);
+        addText(body, "Choose the color flag if the animal has a treat tag.", 14, false);
+        LinearLayout treatTagDetails = new LinearLayout(this);
+        treatTagDetails.setOrientation(LinearLayout.VERTICAL);
+        treatTagDetails.setVisibility(View.GONE);
+        TextInputLayout treatTagField = addInput(treatTagDetails, "Treat tag number", "Example: C823", false);
+        MaterialButton lastTreatDateButton = choiceButton(treatTagDetails, "Last treated", "Add month and day");
+        String[] lastTreatDate = {""};
+        lastTreatDateButton.setOnClickListener(view -> showMonthDayPicker(lastTreatDate, lastTreatDateButton));
+        addFlagChecks(body, config.treatTagColors, new LinkedHashSet<>(), treatColor, selected -> {
+            boolean hasTag = !selected.isEmpty();
+            treatTagDetails.setVisibility(hasTag ? View.VISIBLE : View.GONE);
+            if (!hasTag) {
+                treatTagField.getEditText().setText("");
+                lastTreatDate[0] = "";
+                lastTreatDateButton.setText("Last treated\nAdd month and day");
+            }
+        });
+        body.addView(treatTagDetails, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         addPrimaryButton(body, "Save animal", () -> {
             if (penValue[0].isEmpty() || issueValue[0].isEmpty() || animalColor[0].isEmpty()) {
@@ -124,8 +167,11 @@ public final class MainActivity extends Activity {
             record.animalColor = animalColor[0];
             record.animalTag = text(tagField);
             record.notes = text(notesField);
+            record.symptoms = new ArrayList<>(selectedSymptoms);
+            record.appearance = new ArrayList<>(selectedAppearance);
             record.treatTag = text(treatTagField);
             record.treatTagColor = treatColor[0];
+            record.lastTreatDate = lastTreatDate[0];
             record.status = "Needs pulling";
             List<AnimalRecord> records = store.records();
             records.add(record);
@@ -235,10 +281,13 @@ public final class MainActivity extends Activity {
         addText(content, (record.animalTag.isEmpty() ? "Tag missing / unreadable" : "Tag " + record.animalTag)
                 + " · " + record.animalColor, 15, false);
         addText(content, record.issue, 16, true);
-        if (!record.notes.isEmpty()) addText(content, record.notes, 14, false);
+        if (!record.symptoms.isEmpty()) addText(content, "Symptoms · " + android.text.TextUtils.join(", ", record.symptoms), 14, false);
+        if (!record.appearance.isEmpty()) addText(content, "Appearance · " + android.text.TextUtils.join(", ", record.appearance), 14, false);
+        if (!record.notes.isEmpty()) addText(content, "Other details · " + record.notes, 14, false);
         addText(content, "Status · " + record.status, 14, true);
         if (!record.treatTag.isEmpty()) addText(content, "Treat tag · " + record.treatTag
                 + (record.treatTagColor.isEmpty() ? "" : " · " + record.treatTagColor), 14, false);
+        if (!record.lastTreatDate.isEmpty()) addText(content, "Last treated · " + displayMonthDay(record.lastTreatDate), 14, false);
         if (record.treatedAt > 0) addText(content, "Treated · " + formatTime(record.treatedAt), 14, false);
         if (!record.treatedWith.isEmpty()) addText(content, "Treatment · " + record.treatedWith, 14, false);
         if (!record.treatmentNotes.isEmpty()) addText(content, "Notes · " + record.treatmentNotes, 14, false);
@@ -310,6 +359,12 @@ public final class MainActivity extends Activity {
         animalColors.getEditText().setText(FeedlotConfig.toLines(config.animalColors));
         TextInputLayout tagColors = addInput(body, "Treat tag colors", "White, Green, Yellow, Red", true);
         tagColors.getEditText().setText(FeedlotConfig.toLines(config.treatTagColors));
+        TextInputLayout symptoms = addInput(body, "Symptoms by health category",
+                "One category per line: Respiratory: Snotty nose, Head down", true);
+        symptoms.getEditText().setText(toFlagLines(config.symptomsByIssue));
+        TextInputLayout appearance = addInput(body, "How the animal looks · flags",
+                "One option per line", true);
+        appearance.getEditText().setText(FeedlotConfig.toLines(config.appearanceFlags));
         TextInputLayout destinations = addInput(body, "Treatment destinations and purpose", "8 — Hospital", true);
         destinations.getEditText().setText(FeedlotConfig.toLines(config.destinations));
         addPrimaryButton(body, "Save feedlot settings", () -> {
@@ -319,9 +374,12 @@ public final class MainActivity extends Activity {
             updated.issues = FeedlotConfig.parseLines(text(issues));
             updated.animalColors = FeedlotConfig.parseLines(text(animalColors));
             updated.treatTagColors = FeedlotConfig.parseLines(text(tagColors));
+            updated.symptomsByIssue = parseFlagLines(text(symptoms));
+            updated.appearanceFlags = FeedlotConfig.parseLines(text(appearance));
             updated.destinations = FeedlotConfig.parseLines(text(destinations));
-            if (updated.allPens().isEmpty() || updated.issues.isEmpty() || updated.animalColors.isEmpty()) {
-                toast("Add at least one pen, health issue, and animal color");
+            if (updated.allPens().isEmpty() || updated.issues.isEmpty() || updated.animalColors.isEmpty()
+                    || updated.appearanceFlags.isEmpty()) {
+                toast("Add at least one pen, health issue, animal color, and appearance flag");
                 return;
             }
             try {
@@ -730,6 +788,66 @@ public final class MainActivity extends Activity {
                 }).setNegativeButton("Cancel", null).show());
     }
 
+    private void addFlagChecks(LinearLayout parent, List<String> options, Set<String> selected) {
+        addFlagChecks(parent, options, selected, null, null);
+    }
+
+    private void addFlagChecks(LinearLayout parent, List<String> options, Set<String> selected,
+                               String[] singleSelection, StringCallback onSingleSelected) {
+        if (options == null) return;
+        for (String option : options) {
+            CheckBox check = new CheckBox(this);
+            check.setText(option);
+            check.setTextSize(15);
+            check.setMinHeight(dp(42));
+            check.setPadding(dp(4), 0, 0, 0);
+            check.setChecked(singleSelection == null
+                    ? selected.contains(option) : option.equals(singleSelection[0]));
+            check.setOnCheckedChangeListener((button, checked) -> {
+                if (singleSelection == null) {
+                    if (checked) selected.add(option);
+                    else selected.remove(option);
+                } else if (checked) {
+                    singleSelection[0] = option;
+                    for (int i = 0; i < parent.getChildCount(); i++) {
+                        View child = parent.getChildAt(i);
+                        if (child instanceof CheckBox && child != check) ((CheckBox) child).setChecked(false);
+                    }
+                    if (onSingleSelected != null) onSingleSelected.accept(option);
+                } else if (option.equals(singleSelection[0])) {
+                    singleSelection[0] = "";
+                    if (onSingleSelected != null) onSingleSelected.accept("");
+                }
+            });
+            parent.addView(check, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+    }
+
+    private void showMonthDayPicker(String[] storedDate, MaterialButton button) {
+        Calendar todayCalendar = Calendar.getInstance();
+        DatePickerDialog picker = new DatePickerDialog(this, (pickerView, month, day) -> {
+            Calendar chosen = Calendar.getInstance();
+            chosen.set(Calendar.DAY_OF_MONTH, 1);
+            chosen.set(Calendar.MONTH, month);
+            chosen.set(Calendar.DAY_OF_MONTH, day);
+            chosen.set(Calendar.HOUR_OF_DAY, 12);
+            chosen.set(Calendar.MINUTE, 0);
+            chosen.set(Calendar.SECOND, 0);
+            chosen.set(Calendar.MILLISECOND, 0);
+            Calendar today = Calendar.getInstance();
+            if (chosen.after(today)) chosen.add(Calendar.YEAR, -1);
+            storedDate[0] = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(chosen.getTime());
+            button.setText("Last treated\n" + new SimpleDateFormat("MMM d", Locale.getDefault()).format(chosen.getTime()));
+        }, todayCalendar.get(Calendar.YEAR), todayCalendar.get(Calendar.MONTH), todayCalendar.get(Calendar.DAY_OF_MONTH));
+        int yearId = getResources().getIdentifier("year", "id", "android");
+        if (yearId != 0 && picker.getDatePicker().findViewById(yearId) != null) {
+            picker.getDatePicker().findViewById(yearId).setVisibility(View.GONE);
+        }
+        picker.setTitle("Last treated · month and day");
+        picker.show();
+    }
+
     private TextInputLayout addInput(LinearLayout parent, String label, String hint, boolean multiline) {
         LinearLayout field = new LinearLayout(this);
         field.setOrientation(LinearLayout.VERTICAL);
@@ -768,6 +886,39 @@ public final class MainActivity extends Activity {
 
     private String text(TextInputLayout field) {
         return field.getEditText() == null ? "" : field.getEditText().getText().toString().trim();
+    }
+
+    private String toFlagLines(Map<String, List<String>> flags) {
+        StringBuilder result = new StringBuilder();
+        for (Map.Entry<String, List<String>> entry : flags.entrySet()) {
+            if (result.length() > 0) result.append('\n');
+            result.append(entry.getKey()).append(": ")
+                    .append(android.text.TextUtils.join(", ", entry.getValue()));
+        }
+        return result.toString();
+    }
+
+    private Map<String, List<String>> parseFlagLines(String value) {
+        Map<String, List<String>> result = new java.util.LinkedHashMap<>();
+        for (String line : value.split("\\n")) {
+            int separator = line.indexOf(':');
+            if (separator < 1) continue;
+            String category = line.substring(0, separator).trim();
+            List<String> flags = new ArrayList<>();
+            for (String flag : line.substring(separator + 1).split(",")) {
+                String clean = flag.trim();
+                if (!clean.isEmpty()) flags.add(clean);
+            }
+            if (!category.isEmpty()) result.put(category, flags);
+        }
+        return result;
+    }
+
+    private String displayMonthDay(String iso) {
+        try {
+            Date date = new SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(iso);
+            return new SimpleDateFormat("MMM d", Locale.getDefault()).format(date);
+        } catch (Exception ignored) { return iso; }
     }
 
     private List<String> withNone(List<String> choices) {

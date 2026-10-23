@@ -6,11 +6,13 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /** Feedlot-specific choices are kept separate from app behavior and animal records. */
 final class FeedlotConfig {
-    static final int FORMAT_VERSION = 2;
+    static final int FORMAT_VERSION = 3;
 
     List<String> eastPens = new ArrayList<>();
     List<String> westPens = new ArrayList<>();
@@ -18,6 +20,8 @@ final class FeedlotConfig {
     List<String> animalColors = new ArrayList<>();
     List<String> treatTagColors = new ArrayList<>();
     List<String> destinations = new ArrayList<>();
+    Map<String, List<String>> symptomsByIssue = new LinkedHashMap<>();
+    List<String> appearanceFlags = new ArrayList<>();
 
     static FeedlotConfig defaults() {
         FeedlotConfig config = new FeedlotConfig();
@@ -34,6 +38,12 @@ final class FeedlotConfig {
         config.issues.add("Footrot");
         config.issues.add("Buller");
         config.issues.add("Other");
+        config.symptomsByIssue.put("Respiratory", list("Snotty nose", "Head down", "Looks off", "Walks slow", "Redish Eyes"));
+        config.symptomsByIssue.put("Footrot", list("Limping", "Sore foot", "Swollen foot", "Raw between toes", "Bad smell"));
+        config.symptomsByIssue.put("Buller", list("Riding another animal", "Rough hair coat", "Weak", "Poor condition"));
+        config.symptomsByIssue.put("Other", list("Looks off", "Not eating", "Weak"));
+        Collections.addAll(config.appearanceFlags,
+                "Dull", "Thin", "Lame", "Swollen", "Wound", "Rough coat", "Eye discharge", "Other");
         config.animalColors = new ArrayList<>();
         config.animalColors.add("Black");
         config.animalColors.add("Red");
@@ -70,6 +80,8 @@ final class FeedlotConfig {
                 .put("East", toArray(eastPens))
                 .put("West", toArray(westPens)));
         json.put("issues", toArray(issues));
+        json.put("symptomsByIssue", toObject(symptomsByIssue));
+        json.put("appearanceFlags", toArray(appearanceFlags));
         json.put("animalColors", toArray(animalColors));
         json.put("treatTagColors", toArray(treatTagColors));
         json.put("destinations", toArray(destinations));
@@ -78,7 +90,7 @@ final class FeedlotConfig {
 
     static FeedlotConfig fromJson(JSONObject json) throws JSONException {
         int version = json.optInt("formatVersion", 0);
-        if (version != 1 && version != FORMAT_VERSION) {
+        if (version < 1 || version > FORMAT_VERSION) {
             throw new JSONException("Unsupported feedlot config version: " + version);
         }
         FeedlotConfig config = new FeedlotConfig();
@@ -91,6 +103,11 @@ final class FeedlotConfig {
             config.westPens = fromArray(sections.optJSONArray("West"));
         }
         config.issues = fromArray(json.getJSONArray("issues"));
+        FeedlotConfig defaults = defaults();
+        JSONObject symptoms = json.optJSONObject("symptomsByIssue");
+        config.symptomsByIssue = symptoms == null ? defaults.symptomsByIssue : fromObject(symptoms);
+        config.appearanceFlags = json.has("appearanceFlags")
+                ? fromArray(json.optJSONArray("appearanceFlags")) : defaults.appearanceFlags;
         config.animalColors = fromArray(json.getJSONArray("animalColors"));
         config.treatTagColors = fromArray(json.getJSONArray("treatTagColors"));
         config.destinations = fromArray(json.getJSONArray("destinations"));
@@ -122,6 +139,30 @@ final class FeedlotConfig {
         JSONArray array = new JSONArray();
         for (String value : values) array.put(value);
         return array;
+    }
+
+    private static List<String> list(String... values) {
+        List<String> result = new ArrayList<>();
+        Collections.addAll(result, values);
+        return result;
+    }
+
+    private static JSONObject toObject(Map<String, List<String>> values) throws JSONException {
+        JSONObject object = new JSONObject();
+        for (Map.Entry<String, List<String>> entry : values.entrySet()) {
+            object.put(entry.getKey(), toArray(entry.getValue()));
+        }
+        return object;
+    }
+
+    private static Map<String, List<String>> fromObject(JSONObject object) {
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        java.util.Iterator<String> keys = object.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            result.put(key, fromArray(object.optJSONArray(key)));
+        }
+        return result;
     }
 
     private static List<String> fromArray(JSONArray array) {
