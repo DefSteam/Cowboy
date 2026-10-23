@@ -84,7 +84,11 @@ bump_version() {
 }
 
 if [[ "$PURGE_EXISTING_RELEASES" == "1" ]]; then
-    mapfile -t OLD_RELEASE_TAGS < <(gh release list --repo "$REPO" --limit 1000 --json tagName --jq '.[].tagName')
+    OLD_RELEASE_TAGS_OUTPUT="$(gh release list --repo "$REPO" --limit 1000 --json tagName --jq '.[].tagName')"
+    OLD_RELEASE_TAGS=()
+    if [[ -n "$OLD_RELEASE_TAGS_OUTPUT" ]]; then
+        mapfile -t OLD_RELEASE_TAGS <<< "$OLD_RELEASE_TAGS_OUTPUT"
+    fi
     if [[ "${#OLD_RELEASE_TAGS[@]}" -gt 0 ]]; then
         bump_version
     fi
