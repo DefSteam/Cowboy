@@ -33,7 +33,7 @@ if [[ ! -f "$APK" ]]; then
     exit 1
 fi
 
-gh release create "$TAG" "$APK#Cowboy.apk" \
+gh release create "$TAG" "$APK#Cowboy-$VERSION_NAME.apk" \
     --repo "$REPO" \
     --target main \
     --title "Cowboy $VERSION_NAME" \

@@ -432,12 +432,13 @@ public final class MainActivity extends Activity {
                     runOnUiThread(() -> toast("Cowboy is up to date"));
                     return;
                 }
+                String assetName = "Cowboy-" + tag.replaceFirst("^[vV]", "") + ".apk";
                 String downloadUrl = "";
                 org.json.JSONArray assets = release.optJSONArray("assets");
                 if (assets != null) {
                     for (int i = 0; i < assets.length(); i++) {
                         JSONObject asset = assets.optJSONObject(i);
-                        if (asset != null && "Cowboy.apk".equals(asset.optString("name"))) {
+                        if (asset != null && assetName.equals(asset.optString("name"))) {
                             downloadUrl = asset.optString("browser_download_url", "");
                             break;
                         }
