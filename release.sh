@@ -22,32 +22,49 @@ if ! gh auth status >/dev/null 2>&1; then
 fi
 
 push_local_changes() {
-    if ! git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        echo "Run release.sh from a Git checkout so it can push the source changes first." >&2
-        exit 1
+    if git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        PUSH_WORKTREE="$ROOT_DIR"
+    else
+        echo "No Git checkout found here; preparing a temporary clone of $REPO."
+        TEMP_PUSH_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/cowboy-release.XXXXXX")"
+        PUSH_WORKTREE="$TEMP_PUSH_ROOT/repo"
+        gh repo clone "$REPO" "$PUSH_WORKTREE"
+        while IFS= read -r -d '' tracked_file; do
+            if [[ ! -e "$ROOT_DIR/$tracked_file" ]]; then
+                git -C "$PUSH_WORKTREE" rm -q -- "$tracked_file"
+            fi
+        done < <(git -C "$PUSH_WORKTREE" ls-files -z)
+        tar -C "$ROOT_DIR" \
+            --exclude='./.git' --exclude='./.gradle' --exclude='./build' \
+            --exclude='*/build' --exclude='./local.properties' --exclude='./.idea' \
+            --exclude='./.aws' --exclude='./.codex' --exclude='./.agents' \
+            --exclude='./.ssh' --exclude='./.config' --exclude='./.env*' \
+            -cf - . | tar -C "$PUSH_WORKTREE" -xf -
     fi
     local branch
-    branch="$(git -C "$ROOT_DIR" branch --show-current)"
+    branch="$(git -C "$PUSH_WORKTREE" branch --show-current)"
     if [[ -z "$branch" ]]; then
-        echo "Cannot publish a release from a detached Git HEAD. Switch to a branch first." >&2
+        echo "Cannot determine the source branch to push." >&2
         exit 1
     fi
-    if ! git -C "$ROOT_DIR" remote get-url origin >/dev/null 2>&1; then
+    if ! git -C "$PUSH_WORKTREE" remote get-url origin >/dev/null 2>&1; then
         echo "Git remote 'origin' is not configured." >&2
         exit 1
     fi
 
-    git -C "$ROOT_DIR" add -A
-    if ! git -C "$ROOT_DIR" diff --cached --quiet; then
-        git -C "$ROOT_DIR" commit -m "Prepare Cowboy $VERSION_NAME release"
+    git -C "$PUSH_WORKTREE" add -A
+    if ! git -C "$PUSH_WORKTREE" diff --cached --quiet; then
+        git -C "$PUSH_WORKTREE" commit -m "Prepare Cowboy $VERSION_NAME release"
     fi
-    git -C "$ROOT_DIR" push --set-upstream origin "$branch"
-    RELEASE_TARGET="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+    git -C "$PUSH_WORKTREE" push --set-upstream origin "$branch"
+    RELEASE_TARGET="$(git -C "$PUSH_WORKTREE" rev-parse HEAD)"
     echo "Pushed $branch to origin at $RELEASE_TARGET."
     SOURCE_PUSHED=1
 }
 
 SOURCE_PUSHED=0
+TEMP_PUSH_ROOT=""
+trap 'if [[ -n "$TEMP_PUSH_ROOT" ]]; then rm -rf -- "$TEMP_PUSH_ROOT"; fi' EXIT
 
 VERSION_NAME="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)".*/\1/p' "$ROOT_DIR/app/build.gradle.kts" | head -n 1)"
 if [[ -z "$VERSION_NAME" ]]; then
