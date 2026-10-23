@@ -731,10 +731,24 @@ public final class MainActivity extends Activity {
     }
 
     private TextInputLayout addInput(LinearLayout parent, String label, String hint, boolean multiline) {
+        LinearLayout field = new LinearLayout(this);
+        field.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams fieldParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        fieldParams.setMargins(0, dp(5), 0, dp(7));
+        parent.addView(field, fieldParams);
+
+        TextView heading = new TextView(this);
+        heading.setText(label);
+        heading.setTextSize(14);
+        heading.setTypeface(null, android.graphics.Typeface.BOLD);
+        heading.setTextColor(com.google.android.material.color.MaterialColors.getColor(
+                this, com.google.android.material.R.attr.colorOnSurface, Color.BLACK));
+        field.addView(heading, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
         TextInputLayout layout = new TextInputLayout(this);
         layout.setBoxBackgroundMode(TextInputLayout.BOX_BACKGROUND_OUTLINE);
-        layout.setHint(label);
-        layout.setHelperText(hint.isEmpty() ? null : hint);
         TextInputEditText edit = new TextInputEditText(this);
         edit.setTextSize(16);
         edit.setHint(hint);
@@ -747,8 +761,8 @@ public final class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.setMargins(0, dp(5), 0, dp(6));
-        parent.addView(layout, params);
+        params.topMargin = dp(4);
+        field.addView(layout, params);
         return layout;
     }
 

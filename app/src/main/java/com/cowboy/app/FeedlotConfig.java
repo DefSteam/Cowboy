@@ -5,6 +5,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /** Feedlot-specific choices are kept separate from app behavior and animal records. */
@@ -20,6 +21,14 @@ final class FeedlotConfig {
 
     static FeedlotConfig defaults() {
         FeedlotConfig config = new FeedlotConfig();
+        config.eastPens = new ArrayList<>();
+        Collections.addAll(config.eastPens,
+                "A", "22", "21", "20", "8", "14", "13", "12", "11", "SP",
+                "9", "E/D", "B/C", "10", "3", "4", "5", "6", "7");
+        config.westPens = new ArrayList<>();
+        Collections.addAll(config.westPens,
+                "1", "2/15", "17", "31", "32", "33", "34", "35", "36", "37",
+                "38", "40", "43", "44SP", "WSP", "45");
         config.issues = new ArrayList<>();
         config.issues.add("Respiratory");
         config.issues.add("Footrot");
