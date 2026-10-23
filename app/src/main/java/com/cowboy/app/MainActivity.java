@@ -347,12 +347,12 @@ public final class MainActivity extends Activity {
     }
 
     private void addPulledRecordMenu(LinearLayout parent, AnimalRecord record) {
-        MaterialButton more = new MaterialButton(this,
-                null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        TextView more = new TextView(this);
         more.setText("⋮");
-        more.setTextSize(22);
-        more.setMinWidth(dp(44));
-        more.setMinHeight(dp(44));
+        more.setTextSize(26);
+        more.setGravity(Gravity.CENTER);
+        more.setMinWidth(dp(40));
+        more.setMinHeight(dp(40));
         more.setContentDescription("More animal actions");
         parent.addView(more, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -475,54 +475,52 @@ public final class MainActivity extends Activity {
     }
 
     private void showTreatmentPicker(String[] selection, MaterialButton button) {
-        String[] presets = {
-                "Baytril",
-                "Baytril + Banamine",
-                "Loncor",
-                "Loncor + Vitamin C",
-                "Loncor + Banamine",
-                "Loncor + Banamine + Vitamin",
-                "Intrexa",
-                "Intrexa + Banamine",
-                "Build custom…"
-        };
+        String[] bases = config.baseTreatments.toArray(new String[0]);
         new MaterialAlertDialogBuilder(this)
-                .setTitle("Choose treatment")
-                .setItems(presets, (dialog, which) -> {
-                    if (which == presets.length - 1) {
-                        showCustomTreatmentPicker(selection, button);
-                    } else {
-                        selection[0] = presets[which];
-                        setChoiceText(button, "Treatment", selection[0]);
-                    }
-                })
+                .setTitle("Choose one base product")
+                .setItems(bases, (dialog, which) -> showSecondaryTreatmentPicker(bases[which], selection, button))
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void showCustomTreatmentPicker(String[] selection, MaterialButton button) {
-        List<String> ingredients = new ArrayList<>();
-        Collections.addAll(ingredients, "Baytril", "Loncor", "Intrexa", "Banamine", "Vitamin C");
+    private void showSecondaryTreatmentPicker(String base, String[] selection, MaterialButton button) {
+        List<String> allowed = config.secondaryByBase.get(base);
+        List<String> options = new ArrayList<>();
+        if (allowed != null) {
+            for (String secondary : config.secondaryTreatments) {
+                if (allowed.contains(secondary)) options.add(secondary);
+            }
+        }
+        if (options.isEmpty()) {
+            selection[0] = base;
+            setChoiceText(button, "Treatment", base);
+            return;
+        }
         Set<String> selected = new LinkedHashSet<>();
+        List<String> defaults = config.defaultSecondaryByBase.get(base);
+        if (defaults != null) {
+            for (String product : options) if (defaults.contains(product)) selected.add(product);
+        }
         ScrollView scroll = new ScrollView(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(20), dp(8), dp(20), dp(8));
-        addText(content, "Select the products to combine", 15, false);
-        addFlagChips(content, ingredients, selected);
+        addText(content, "Choose any compatible secondary products", 15, false);
+        addFlagChips(content, options, selected);
         scroll.addView(content);
         new MaterialAlertDialogBuilder(this)
-                .setTitle("Build treatment")
+                .setTitle(base + " · secondary products")
                 .setView(scroll)
-                .setNegativeButton("Cancel", null)
+                .setNeutralButton("Cancel", null)
+                .setNegativeButton("Base only", (dialog, which) -> {
+                    selection[0] = base;
+                    setChoiceText(button, "Treatment", base);
+                })
                 .setPositiveButton("Use treatment", (dialog, which) -> {
-                    if (selected.isEmpty()) {
-                        toast("Select at least one product");
-                        return;
-                    }
-                    List<String> ordered = new ArrayList<>();
-                    for (String ingredient : ingredients) if (selected.contains(ingredient)) ordered.add(ingredient);
-                    selection[0] = android.text.TextUtils.join(" + ", ordered);
+                    List<String> chosen = new ArrayList<>();
+                    for (String option : options) if (selected.contains(option)) chosen.add(option);
+                    selection[0] = base + (chosen.isEmpty() ? "" : " + "
+                            + android.text.TextUtils.join(" + ", chosen));
                     setChoiceText(button, "Treatment", selection[0]);
                 })
                 .show();
@@ -547,6 +545,18 @@ public final class MainActivity extends Activity {
         TextInputLayout appearance = addInput(body, "How the animal looks · flags",
                 "One option per line", true);
         appearance.getEditText().setText(FeedlotConfig.toLines(config.appearanceFlags));
+        TextInputLayout baseTreatments = addInput(body, "Treatment base products · choose one",
+                "One product per line: Baytril, Loncor, Intrexa", true);
+        baseTreatments.getEditText().setText(FeedlotConfig.toLines(config.baseTreatments));
+        TextInputLayout secondaryTreatments = addInput(body, "Treatment secondary products · can combine",
+                "One product per line: Banamine, Dexamine, Vitamin C", true);
+        secondaryTreatments.getEditText().setText(FeedlotConfig.toLines(config.secondaryTreatments));
+        TextInputLayout secondaryCompatibility = addInput(body, "Secondary products allowed with each base",
+                "One base per line: Loncor: Banamine, Dexamine, Vitamin C", true);
+        secondaryCompatibility.getEditText().setText(toFlagLines(config.secondaryByBase));
+        TextInputLayout defaultSecondary = addInput(body, "Secondary products selected by default",
+                "One base per line: Loncor: Vitamin C. These can be toggled for each animal.", true);
+        defaultSecondary.getEditText().setText(toFlagLines(config.defaultSecondaryByBase));
         TextInputLayout destinations = addInput(body, "Treatment destinations and purpose", "8 — Hospital", true);
         destinations.getEditText().setText(FeedlotConfig.toLines(config.destinations));
         addPrimaryButton(body, "Save feedlot settings", () -> {
@@ -558,10 +568,28 @@ public final class MainActivity extends Activity {
             updated.treatTagColors = FeedlotConfig.parseLines(text(tagColors));
             updated.symptomsByIssue = parseFlagLines(text(symptoms));
             updated.appearanceFlags = FeedlotConfig.parseLines(text(appearance));
+            updated.baseTreatments = FeedlotConfig.parseLines(text(baseTreatments));
+            updated.secondaryTreatments = FeedlotConfig.parseLines(text(secondaryTreatments));
+            updated.secondaryByBase = parseFlagLines(text(secondaryCompatibility));
+            updated.defaultSecondaryByBase = parseFlagLines(text(defaultSecondary));
             updated.destinations = FeedlotConfig.parseLines(text(destinations));
+            for (String base : updated.baseTreatments) {
+                if (updated.secondaryTreatments.contains(base)) {
+                    toast("A base product cannot also be listed as a secondary product: " + base);
+                    return;
+                }
+            }
+            for (Map.Entry<String, List<String>> defaults : updated.defaultSecondaryByBase.entrySet()) {
+                List<String> compatible = updated.secondaryByBase.get(defaults.getKey());
+                if (!updated.baseTreatments.contains(defaults.getKey()) || compatible == null
+                        || !compatible.containsAll(defaults.getValue())) {
+                    toast("Default secondary products must be allowed for a listed base product: " + defaults.getKey());
+                    return;
+                }
+            }
             if (updated.allPens().isEmpty() || updated.issues.isEmpty() || updated.animalColors.isEmpty()
-                    || updated.appearanceFlags.isEmpty()) {
-                toast("Add at least one pen, health issue, animal color, and appearance flag");
+                    || updated.appearanceFlags.isEmpty() || updated.baseTreatments.isEmpty()) {
+                toast("Add at least one pen, health issue, animal color, appearance flag, and base product");
                 return;
             }
             try {
@@ -641,23 +669,25 @@ public final class MainActivity extends Activity {
             toolbar.setNavigationContentDescription("Back");
             toolbar.setNavigationOnClickListener(view -> showHome());
         }
-        MenuItem updates = toolbar.getMenu().add(0, MENU_CHECK_UPDATES, 0, "Check for update");
-        updates.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
-        MenuItem settings = toolbar.getMenu().add(0, MENU_SETTINGS, 1, "Settings");
-        settings.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
-        if (BuildConfig.DEBUG) {
-            MenuItem crashReport = toolbar.getMenu().add(0, MENU_CRASH_REPORT, 2, "Share crash report");
-            crashReport.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
-        }
-        toolbar.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == MENU_CHECK_UPDATES) {
-                checkForUpdate();
-                return true;
+        if (!back) {
+            MenuItem updates = toolbar.getMenu().add(0, MENU_CHECK_UPDATES, 0, "Check for update");
+            updates.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+            MenuItem settings = toolbar.getMenu().add(0, MENU_SETTINGS, 1, "Settings");
+            settings.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+            if (BuildConfig.DEBUG) {
+                MenuItem crashReport = toolbar.getMenu().add(0, MENU_CRASH_REPORT, 2, "Share crash report");
+                crashReport.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
             }
-            if (item.getItemId() == MENU_SETTINGS) { showConfig(); return true; }
-            if (item.getItemId() == MENU_CRASH_REPORT) { shareLatestCrashReport(); return true; }
-            return false;
-        });
+            toolbar.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == MENU_CHECK_UPDATES) {
+                    checkForUpdate();
+                    return true;
+                }
+                if (item.getItemId() == MENU_SETTINGS) { showConfig(); return true; }
+                if (item.getItemId() == MENU_CRASH_REPORT) { shareLatestCrashReport(); return true; }
+                return false;
+            });
+        }
         root.addView(toolbar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         ScrollView scroll = new ScrollView(this);

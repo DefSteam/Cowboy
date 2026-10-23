@@ -12,7 +12,7 @@ import java.util.Map;
 
 /** Feedlot-specific choices are kept separate from app behavior and animal records. */
 final class FeedlotConfig {
-    static final int FORMAT_VERSION = 3;
+    static final int FORMAT_VERSION = 5;
 
     List<String> eastPens = new ArrayList<>();
     List<String> westPens = new ArrayList<>();
@@ -22,6 +22,10 @@ final class FeedlotConfig {
     List<String> destinations = new ArrayList<>();
     Map<String, List<String>> symptomsByIssue = new LinkedHashMap<>();
     List<String> appearanceFlags = new ArrayList<>();
+    List<String> baseTreatments = new ArrayList<>();
+    List<String> secondaryTreatments = new ArrayList<>();
+    Map<String, List<String>> secondaryByBase = new LinkedHashMap<>();
+    Map<String, List<String>> defaultSecondaryByBase = new LinkedHashMap<>();
 
     static FeedlotConfig defaults() {
         FeedlotConfig config = new FeedlotConfig();
@@ -44,6 +48,14 @@ final class FeedlotConfig {
         config.symptomsByIssue.put("Other", list("Looks off", "Not eating", "Weak"));
         Collections.addAll(config.appearanceFlags,
                 "Dull", "Thin", "Lame", "Swollen", "Wound", "Rough coat", "Eye discharge", "Other");
+        Collections.addAll(config.baseTreatments, "Baytril", "Loncor", "Intrexa");
+        Collections.addAll(config.secondaryTreatments, "Banamine", "Dexamine", "Vitamin C");
+        config.secondaryByBase.put("Baytril", list("Banamine", "Dexamine"));
+        config.secondaryByBase.put("Loncor", list("Banamine", "Dexamine", "Vitamin C"));
+        config.secondaryByBase.put("Intrexa", list("Banamine", "Dexamine"));
+        config.defaultSecondaryByBase.put("Baytril", list());
+        config.defaultSecondaryByBase.put("Loncor", list("Vitamin C"));
+        config.defaultSecondaryByBase.put("Intrexa", list());
         config.animalColors = new ArrayList<>();
         config.animalColors.add("Black");
         config.animalColors.add("Red");
@@ -82,6 +94,10 @@ final class FeedlotConfig {
         json.put("issues", toArray(issues));
         json.put("symptomsByIssue", toObject(symptomsByIssue));
         json.put("appearanceFlags", toArray(appearanceFlags));
+        json.put("baseTreatments", toArray(baseTreatments));
+        json.put("secondaryTreatments", toArray(secondaryTreatments));
+        json.put("secondaryByBase", toObject(secondaryByBase));
+        json.put("defaultSecondaryByBase", toObject(defaultSecondaryByBase));
         json.put("animalColors", toArray(animalColors));
         json.put("treatTagColors", toArray(treatTagColors));
         json.put("destinations", toArray(destinations));
@@ -108,6 +124,15 @@ final class FeedlotConfig {
         config.symptomsByIssue = symptoms == null ? defaults.symptomsByIssue : fromObject(symptoms);
         config.appearanceFlags = json.has("appearanceFlags")
                 ? fromArray(json.optJSONArray("appearanceFlags")) : defaults.appearanceFlags;
+        config.baseTreatments = json.has("baseTreatments")
+                ? fromArray(json.optJSONArray("baseTreatments")) : defaults.baseTreatments;
+        config.secondaryTreatments = json.has("secondaryTreatments")
+                ? fromArray(json.optJSONArray("secondaryTreatments")) : defaults.secondaryTreatments;
+        JSONObject secondary = json.optJSONObject("secondaryByBase");
+        config.secondaryByBase = secondary == null ? defaults.secondaryByBase : fromObject(secondary);
+        JSONObject defaultSecondary = json.optJSONObject("defaultSecondaryByBase");
+        config.defaultSecondaryByBase = defaultSecondary == null
+                ? defaults.defaultSecondaryByBase : fromObject(defaultSecondary);
         config.animalColors = fromArray(json.getJSONArray("animalColors"));
         config.treatTagColors = fromArray(json.getJSONArray("treatTagColors"));
         config.destinations = fromArray(json.getJSONArray("destinations"));
