@@ -826,7 +826,7 @@ public final class MainActivity extends Activity {
 
     private void showMonthDayPicker(String[] storedDate, MaterialButton button) {
         Calendar todayCalendar = Calendar.getInstance();
-        DatePickerDialog picker = new DatePickerDialog(this, (pickerView, month, day) -> {
+        DatePickerDialog picker = new DatePickerDialog(this, (pickerView, year, month, day) -> {
             Calendar chosen = Calendar.getInstance();
             chosen.set(Calendar.DAY_OF_MONTH, 1);
             chosen.set(Calendar.MONTH, month);
