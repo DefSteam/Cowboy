@@ -743,7 +743,7 @@ public final class MainActivity extends Activity {
             edit.setMinLines(2);
             edit.setGravity(Gravity.TOP | Gravity.START);
         }
-        layout.addView(edit, new ViewGroup.LayoutParams(
+        layout.addView(edit, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
