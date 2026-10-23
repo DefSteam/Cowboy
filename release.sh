@@ -15,6 +15,31 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 1
 fi
 
+push_local_changes() {
+    if ! git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Run release.sh from a Git checkout so it can push the source changes first." >&2
+        exit 1
+    fi
+    local branch
+    branch="$(git -C "$ROOT_DIR" branch --show-current)"
+    if [[ -z "$branch" ]]; then
+        echo "Cannot publish a release from a detached Git HEAD. Switch to a branch first." >&2
+        exit 1
+    fi
+    if ! git -C "$ROOT_DIR" remote get-url origin >/dev/null 2>&1; then
+        echo "Git remote 'origin' is not configured." >&2
+        exit 1
+    fi
+
+    git -C "$ROOT_DIR" add -A
+    if ! git -C "$ROOT_DIR" diff --cached --quiet; then
+        git -C "$ROOT_DIR" commit -m "Prepare Cowboy $VERSION_NAME release"
+    fi
+    git -C "$ROOT_DIR" push --set-upstream origin "$branch"
+    RELEASE_TARGET="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+    echo "Pushed $branch to origin at $RELEASE_TARGET."
+}
+
 VERSION_NAME="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)".*/\1/p' "$ROOT_DIR/app/build.gradle.kts" | head -n 1)"
 if [[ -z "$VERSION_NAME" ]]; then
     echo "Could not read versionName from app/build.gradle.kts." >&2
@@ -31,6 +56,7 @@ if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
     read -r -p "Add Cowboy.apk to this release for older app builds [a], bump version [b], or cancel [c]? " answer
     case "$answer" in
         a|A)
+            push_local_changes
             "$ROOT_DIR/build.sh" :app:assembleDebug
             if [[ ! -f "$APK" ]]; then
                 echo "Build finished but APK was not found at $APK." >&2
@@ -73,6 +99,7 @@ if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
     fi
 fi
 
+push_local_changes
 "$ROOT_DIR/build.sh" :app:assembleDebug
 if [[ ! -f "$APK" ]]; then
     echo "Build finished but APK was not found at $APK." >&2
@@ -81,7 +108,7 @@ fi
 
 gh release create "$TAG" "$APK#Cowboy-$VERSION_NAME.apk" "$APK#Cowboy.apk" \
     --repo "$REPO" \
-    --target main \
+    --target "$RELEASE_TARGET" \
     --title "Cowboy $VERSION_NAME" \
     --generate-notes
 
