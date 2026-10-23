@@ -23,8 +23,44 @@ fi
 TAG="v$VERSION_NAME"
 
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-    echo "Release $TAG already exists in $REPO. Bump versionName in app/build.gradle.kts first." >&2
-    exit 1
+    echo "Release $TAG already exists in $REPO."
+    if [[ ! -t 0 ]]; then
+        echo "Run this script in a terminal to choose whether to bump the version." >&2
+        exit 1
+    fi
+    read -r -p "Bump to the next patch version and increment versionCode? [y/N] " answer
+    case "$answer" in
+        y|Y|yes|YES|Yes) ;;
+        *) echo "Release cancelled. No version changes were made."; exit 1 ;;
+    esac
+
+    if [[ ! "$VERSION_NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+        echo "Automatic bumping requires a versionName in major.minor.patch format." >&2
+        exit 1
+    fi
+    MAJOR="${BASH_REMATCH[1]}"
+    MINOR="${BASH_REMATCH[2]}"
+    PATCH="${BASH_REMATCH[3]}"
+    VERSION_CODE="$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\).*/\1/p' "$ROOT_DIR/app/build.gradle.kts" | head -n 1)"
+    if [[ ! "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+        echo "Could not read versionCode from app/build.gradle.kts." >&2
+        exit 1
+    fi
+    NEXT_VERSION_NAME="$MAJOR.$MINOR.$((PATCH + 1))"
+    NEXT_VERSION_CODE="$((VERSION_CODE + 1))"
+    GRADLE_FILE="$ROOT_DIR/app/build.gradle.kts"
+    sed -i.bak \
+        -e "s/^\([[:space:]]*versionCode = \)[0-9][0-9]*/\1$NEXT_VERSION_CODE/" \
+        -e "s/^\([[:space:]]*versionName = \)\"[^\"]*\"/\1\"$NEXT_VERSION_NAME\"/" \
+        "$GRADLE_FILE"
+    rm -f "$GRADLE_FILE.bak"
+    VERSION_NAME="$NEXT_VERSION_NAME"
+    TAG="v$VERSION_NAME"
+    echo "Updated app/build.gradle.kts to version $VERSION_NAME (versionCode $NEXT_VERSION_CODE)."
+    if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+        echo "Release $TAG already exists too. Choose a higher versionName and try again." >&2
+        exit 1
+    fi
 fi
 
 "$ROOT_DIR/build.sh" :app:assembleDebug
