@@ -51,6 +51,11 @@ push_local_changes() {
     if ! git -C "$PUSH_WORKTREE" diff --cached --quiet; then
         git -C "$PUSH_WORKTREE" commit -m "Prepare Cowboy $VERSION_NAME release"
     fi
+    git -C "$PUSH_WORKTREE" fetch origin "refs/heads/$SOURCE_BRANCH:refs/remotes/origin/$SOURCE_BRANCH"
+    if ! git -C "$PUSH_WORKTREE" rebase "refs/remotes/origin/$SOURCE_BRANCH"; then
+        echo "Could not rebase local changes onto origin/$SOURCE_BRANCH. Resolve the rebase conflicts, then rerun release.sh." >&2
+        exit 1
+    fi
     git -C "$PUSH_WORKTREE" push origin "HEAD:$SOURCE_BRANCH"
     RELEASE_TARGET="$(git -C "$PUSH_WORKTREE" rev-parse HEAD)"
     echo "Pushed source to origin/$SOURCE_BRANCH at $RELEASE_TARGET."
