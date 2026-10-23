@@ -806,8 +806,7 @@ public final class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         groupParams.setMargins(0, dp(2), 0, dp(7));
         parent.addView(group, groupParams);
-        int primary = com.google.android.material.color.MaterialColors.getColor(
-                this, com.google.android.material.R.attr.colorPrimary, 0xFF456348);
+        int primary = 0xFF456348;
         int outline = 0xFF8A9088;
         int[][] checkedState = new int[][] { new int[] { android.R.attr.state_checked }, new int[] {} };
         ColorStateList fills = new ColorStateList(checkedState, new int[] { primary, Color.WHITE });
