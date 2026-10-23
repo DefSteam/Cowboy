@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -88,7 +89,9 @@ public final class MainActivity extends Activity {
         LinearLayout body = body();
         addHeading(body, "Daily pen walk", "Record sick animals now, then pull and treat them when the walk is done.");
         int count = 0;
-        for (AnimalRecord record : store.records()) if (today().equals(record.date)) count++;
+        for (AnimalRecord record : store.records()) {
+            if (today().equals(record.date) && !"Removed from list".equals(record.status)) count++;
+        }
         MaterialCardView summary = card(body);
         addText(column(summary), count + (count == 1 ? " animal recorded today" : " animals recorded today"), 17, true);
         addPrimaryButton(body, "Enter sick animal", this::showNewRecord);
@@ -249,7 +252,7 @@ public final class MainActivity extends Activity {
                 + (records.size() == 1 ? " animal" : " animals")
                 + (watchlist.isEmpty() ? "" : " · " + watchlist.size() + " to check"));
         if (records.isEmpty() && watchlist.isEmpty()) {
-            addText(body, "No animals recorded yet. Start with the first sick animal you find.", 16, false);
+            addText(body, "No animals on today's list. Add one when you find a sick animal.", 16, false);
         }
         for (AnimalRecord record : records) addRecordCard(body, record, true);
         if (!watchlist.isEmpty()) {
@@ -287,7 +290,13 @@ public final class MainActivity extends Activity {
     private void addRecordCard(LinearLayout parent, AnimalRecord record, boolean actions) {
         MaterialCardView card = card(parent);
         LinearLayout content = column(card);
-        addText(content, "Pen " + record.pen, 19, true);
+        LinearLayout titleRow = new LinearLayout(this);
+        titleRow.setOrientation(LinearLayout.HORIZONTAL);
+        content.addView(titleRow, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        TextView penTitle = addText(titleRow, "Pen " + record.pen, 19, true);
+        penTitle.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (actions && "Pulled".equals(record.status)) addPulledRecordMenu(titleRow, record);
         if (!record.watchlistFromDate.isEmpty()) {
             addText(content, "Added to today's pull list from " + formatDate(record.watchlistFromDate), 14, true);
         } else if (record.watchlist && !today().equals(record.date)) {
@@ -312,7 +321,7 @@ public final class MainActivity extends Activity {
                 addPrimaryButton(content, "Mark to pull today", () -> pullFromWatchlist(record));
                 addSecondaryButton(content, "Confirm looks fine", () -> resolveWatchlist(record));
             } else if ("Pulled".equals(record.status)) {
-                addSecondaryButton(content, "Undo mark pulled", () -> setStatus(record, "Needs pulling"));
+                addPrimaryButton(content, "Record treatment", () -> showTreatment(record));
             } else if (!"Treated".equals(record.status) && !"Looks fine".equals(record.status)) {
                 addSecondaryButton(content, "Mark pulled", () -> setStatus(record, "Pulled"));
                 addPrimaryButton(content, "Record treatment", () -> showTreatment(record));
@@ -326,14 +335,35 @@ public final class MainActivity extends Activity {
     private void showLooksFineOptions(AnimalRecord target) {
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Animal looks fine")
-                .setMessage("Leave it off the pull list, or add it to tomorrow's watchlist?")
-                .setNegativeButton("Cancel", null)
-                .setNeutralButton("Leave alone", (dialog, which) -> updateRecord(target, record -> {
-                    record.status = "Looks fine";
-                    record.watchlist = false;
-                }))
-                .setPositiveButton("Watch tomorrow", (dialog, which) -> addToWatchlist(target))
+                .setItems(new String[]{"Check Again Tomorrow", "Remove from list", "Cancel"},
+                        (dialog, which) -> {
+                            if (which == 0) addToWatchlist(target);
+                            else if (which == 1) updateRecord(target, record -> {
+                                record.status = "Removed from list";
+                                record.watchlist = false;
+                            });
+                        })
                 .show();
+    }
+
+    private void addPulledRecordMenu(LinearLayout parent, AnimalRecord record) {
+        MaterialButton more = new MaterialButton(this,
+                null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        more.setText("⋮");
+        more.setTextSize(22);
+        more.setMinWidth(dp(44));
+        more.setMinHeight(dp(44));
+        more.setContentDescription("More animal actions");
+        parent.addView(more, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        more.setOnClickListener(view -> {
+            PopupMenu menu = new PopupMenu(this, more);
+            menu.getMenu().add("Undo mark pulled").setOnMenuItemClickListener(item -> {
+                setStatus(record, "Needs pulling");
+                return true;
+            });
+            menu.show();
+        });
     }
 
     private void addToWatchlist(AnimalRecord target) {
@@ -412,8 +442,10 @@ public final class MainActivity extends Activity {
         treatTag.getEditText().setText(target.treatTag);
         String[] tagColor = {target.treatTagColor};
         addListChoice(form, "Treat tag color", withNone(config.treatTagColors), tagColor);
-        TextInputLayout treatedWith = addInput(form, "What was he treated with?", "Product / treatment", false);
-        treatedWith.getEditText().setText(target.treatedWith);
+        String[] treatment = {target.treatedWith};
+        MaterialButton treatmentButton = choiceButton(form, "Treatment", treatment[0].isEmpty()
+                ? "Tap to choose" : treatment[0]);
+        treatmentButton.setOnClickListener(view -> showTreatmentPicker(treatment, treatmentButton));
         TextInputLayout notes = addInput(form, "Treatment notes", "Optional", true);
         notes.getEditText().setText(target.treatmentNotes);
         String[] destination = {target.destinationPen};
@@ -429,7 +461,7 @@ public final class MainActivity extends Activity {
                     for (AnimalRecord record : records) if (record.id.equals(target.id)) {
                         if (!text(treatTag).isEmpty()) record.treatTag = text(treatTag);
                         record.treatTagColor = tagColor[0];
-                        record.treatedWith = text(treatedWith);
+                        record.treatedWith = treatment[0];
                         record.treatmentNotes = text(notes);
                         record.destinationPen = destination[0];
                         record.status = "Treated";
@@ -440,6 +472,60 @@ public final class MainActivity extends Activity {
                     toast("Treatment saved");
                     showToday();
                 }).show();
+    }
+
+    private void showTreatmentPicker(String[] selection, MaterialButton button) {
+        String[] presets = {
+                "Baytril",
+                "Baytril + Banamine",
+                "Loncor",
+                "Loncor + Vitamin C",
+                "Loncor + Banamine",
+                "Loncor + Banamine + Vitamin",
+                "Intrexa",
+                "Intrexa + Banamine",
+                "Build custom…"
+        };
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Choose treatment")
+                .setItems(presets, (dialog, which) -> {
+                    if (which == presets.length - 1) {
+                        showCustomTreatmentPicker(selection, button);
+                    } else {
+                        selection[0] = presets[which];
+                        setChoiceText(button, "Treatment", selection[0]);
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showCustomTreatmentPicker(String[] selection, MaterialButton button) {
+        List<String> ingredients = new ArrayList<>();
+        Collections.addAll(ingredients, "Baytril", "Loncor", "Intrexa", "Banamine", "Vitamin C");
+        Set<String> selected = new LinkedHashSet<>();
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(20), dp(8), dp(20), dp(8));
+        addText(content, "Select the products to combine", 15, false);
+        addFlagChips(content, ingredients, selected);
+        scroll.addView(content);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Build treatment")
+                .setView(scroll)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Use treatment", (dialog, which) -> {
+                    if (selected.isEmpty()) {
+                        toast("Select at least one product");
+                        return;
+                    }
+                    List<String> ordered = new ArrayList<>();
+                    for (String ingredient : ingredients) if (selected.contains(ingredient)) ordered.add(ingredient);
+                    selection[0] = android.text.TextUtils.join(" + ", ordered);
+                    setChoiceText(button, "Treatment", selection[0]);
+                })
+                .show();
     }
 
     private void showConfig() {
@@ -770,7 +856,9 @@ public final class MainActivity extends Activity {
 
     private List<AnimalRecord> recordsForDate(String date) {
         List<AnimalRecord> result = new ArrayList<>();
-        for (AnimalRecord record : store.records()) if (date.equals(record.date)) result.add(record);
+        for (AnimalRecord record : store.records()) {
+            if (date.equals(record.date) && !"Removed from list".equals(record.status)) result.add(record);
+        }
         List<String> penOrder = config.allPens();
         Collections.sort(result, (a, b) -> {
             int ap = penOrder.indexOf(a.pen), bp = penOrder.indexOf(b.pen);
