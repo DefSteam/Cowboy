@@ -10,6 +10,10 @@ The setup screen can export a versioned JSON configuration to share with another
 
 The interface uses Google's Material Components for Android, including a top app bar, Material buttons, cards, input fields, and selection dialogs.
 
+## Debug crash reports
+
+Debug builds save uncaught crash details on the device, including the app version, Android version, device model, crashing thread, and Java stack trace. The next time the app opens, it offers to share the report. You can also use **Share crash report** from the top app bar menu. Reports stay on the device unless you choose a share destination; no crash upload service is configured.
+
 ## Daily workflow
 
 - **Enter new sick animal:** record its found-in pen, health issue, color, regular tag if visible, notes, and any existing treatment tag.

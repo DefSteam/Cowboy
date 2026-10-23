@@ -55,6 +55,7 @@ public final class MainActivity extends Activity {
     private static final int IMPORT_CONFIG = 402;
     private static final int MENU_SETTINGS = 501;
     private static final int MENU_CHECK_UPDATES = 502;
+    private static final int MENU_CRASH_REPORT = 503;
 
     private RecordStore store;
     private FeedlotConfig config;
@@ -73,6 +74,7 @@ public final class MainActivity extends Activity {
         store = new RecordStore(this);
         config = store.config();
         showHome();
+        if (BuildConfig.DEBUG) promptForCrashReport();
     }
 
     private void showHome() {
@@ -403,12 +405,17 @@ public final class MainActivity extends Activity {
         updates.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
         MenuItem settings = toolbar.getMenu().add(0, MENU_SETTINGS, 1, "Settings");
         settings.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+        if (BuildConfig.DEBUG) {
+            MenuItem crashReport = toolbar.getMenu().add(0, MENU_CRASH_REPORT, 2, "Share crash report");
+            crashReport.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+        }
         toolbar.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == MENU_CHECK_UPDATES) {
                 checkForUpdate();
                 return true;
             }
             if (item.getItemId() == MENU_SETTINGS) { showConfig(); return true; }
+            if (item.getItemId() == MENU_CRASH_REPORT) { shareLatestCrashReport(); return true; }
             return false;
         });
         root.addView(toolbar, new LinearLayout.LayoutParams(
@@ -419,6 +426,42 @@ public final class MainActivity extends Activity {
         root.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         setContentView(root);
+    }
+
+    private void promptForCrashReport() {
+        File report = CrashReporter.latestReport(this);
+        if (report == null) return;
+        String lastPrompted = getPreferences(MODE_PRIVATE).getString("last_crash_report_prompted", "");
+        if (report.getName().equals(lastPrompted)) return;
+        getPreferences(MODE_PRIVATE).edit().putString("last_crash_report_prompted", report.getName()).apply();
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Cowboy stopped unexpectedly")
+                .setMessage("A debug crash report was saved on this device. Share it with the app developer?")
+                .setPositiveButton("Share report", (dialog, which) -> shareCrashReport(report))
+                .setNegativeButton("Later", null)
+                .show();
+    }
+
+    private void shareLatestCrashReport() {
+        File report = CrashReporter.latestReport(this);
+        if (report == null) {
+            toast("No crash report is saved on this device");
+            return;
+        }
+        shareCrashReport(report);
+    }
+
+    private void shareCrashReport(File report) {
+        Uri uri = androidx.core.content.FileProvider.getUriForFile(this,
+                getPackageName() + ".fileprovider", report);
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("text/plain");
+        share.putExtra(Intent.EXTRA_SUBJECT, "Cowboy debug crash report");
+        share.putExtra(Intent.EXTRA_TEXT, "Cowboy crash report attached. Please review it before forwarding.");
+        share.putExtra(Intent.EXTRA_STREAM, uri);
+        share.setClipData(android.content.ClipData.newUri(getContentResolver(), "Crash report", uri));
+        share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(Intent.createChooser(share, "Share crash report"));
     }
 
     private void checkForUpdate() {
