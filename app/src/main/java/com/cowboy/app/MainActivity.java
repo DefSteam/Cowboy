@@ -13,7 +13,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.GridLayout;
-import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -22,6 +21,8 @@ import android.widget.Toast;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.android.material.textfield.TextInputEditText;
@@ -121,7 +122,7 @@ public final class MainActivity extends Activity {
                     selectedSymptoms.clear();
                     symptomsPanel.removeAllViews();
                     addText(symptomsPanel, "Symptoms · " + issueValue[0], 16, true);
-                    addFlagChecks(symptomsPanel, config.symptomsByIssue.get(issueValue[0]), selectedSymptoms);
+                    addFlagChips(symptomsPanel, config.symptomsByIssue.get(issueValue[0]), selectedSymptoms);
                 }).setNegativeButton("Cancel", null).show());
         String[] animalColor = {""};
         addListChoice(body, "Animal color", config.animalColors, animalColor);
@@ -129,7 +130,7 @@ public final class MainActivity extends Activity {
         tagField.getEditText().setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
         addText(body, "How the animal looks", 16, true);
         Set<String> selectedAppearance = new LinkedHashSet<>();
-        addFlagChecks(body, config.appearanceFlags, selectedAppearance);
+        addFlagChips(body, config.appearanceFlags, selectedAppearance);
         TextInputLayout notesField = addInput(body, "Other details", "Optional notes", true);
         String[] treatColor = {""};
         addText(body, "Treat tag", 16, true);
@@ -141,7 +142,7 @@ public final class MainActivity extends Activity {
         MaterialButton lastTreatDateButton = choiceButton(treatTagDetails, "Last treated", "Add month and day");
         String[] lastTreatDate = {""};
         lastTreatDateButton.setOnClickListener(view -> showMonthDayPicker(lastTreatDate, lastTreatDateButton));
-        addFlagChecks(body, config.treatTagColors, new LinkedHashSet<>(), treatColor, selected -> {
+        addFlagChips(body, config.treatTagColors, new LinkedHashSet<>(), treatColor, selected -> {
             boolean hasTag = !selected.isEmpty();
             treatTagDetails.setVisibility(hasTag ? View.VISIBLE : View.GONE);
             if (!hasTag) {
@@ -788,39 +789,56 @@ public final class MainActivity extends Activity {
                 }).setNegativeButton("Cancel", null).show());
     }
 
-    private void addFlagChecks(LinearLayout parent, List<String> options, Set<String> selected) {
-        addFlagChecks(parent, options, selected, null, null);
+    private void addFlagChips(LinearLayout parent, List<String> options, Set<String> selected) {
+        addFlagChips(parent, options, selected, null, null);
     }
 
-    private void addFlagChecks(LinearLayout parent, List<String> options, Set<String> selected,
+    private void addFlagChips(LinearLayout parent, List<String> options, Set<String> selected,
                                String[] singleSelection, StringCallback onSingleSelected) {
         if (options == null) return;
+        ChipGroup group = new ChipGroup(this);
+        group.setSingleLine(false);
+        group.setSingleSelection(singleSelection != null);
+        group.setSelectionRequired(false);
+        group.setChipSpacingHorizontal(dp(8));
+        group.setChipSpacingVertical(dp(4));
+        LinearLayout.LayoutParams groupParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        groupParams.setMargins(0, dp(2), 0, dp(7));
+        parent.addView(group, groupParams);
+        int primary = com.google.android.material.color.MaterialColors.getColor(
+                this, com.google.android.material.R.attr.colorPrimary, 0xFF456348);
+        int outline = 0xFF8A9088;
+        int[][] checkedState = new int[][] { new int[] { android.R.attr.state_checked }, new int[] {} };
+        ColorStateList fills = new ColorStateList(checkedState, new int[] { primary, Color.WHITE });
+        ColorStateList strokes = new ColorStateList(checkedState, new int[] { primary, outline });
+        ColorStateList textColors = new ColorStateList(checkedState, new int[] { Color.WHITE, 0xFF242922 });
         for (String option : options) {
-            CheckBox check = new CheckBox(this);
-            check.setText(option);
-            check.setTextSize(15);
-            check.setMinHeight(dp(42));
-            check.setPadding(dp(4), 0, 0, 0);
-            check.setChecked(singleSelection == null
+            Chip chip = new Chip(this);
+            chip.setText(option);
+            chip.setTextSize(14);
+            chip.setCheckable(true);
+            chip.setClickable(true);
+            chip.setChipBackgroundColor(fills);
+            chip.setChipStrokeColor(strokes);
+            chip.setChipStrokeWidth(dp(1));
+            chip.setTextColor(textColors);
+            chip.setChipCornerRadius(dp(20));
+            chip.setChecked(singleSelection == null
                     ? selected.contains(option) : option.equals(singleSelection[0]));
-            check.setOnCheckedChangeListener((button, checked) -> {
+            chip.setOnCheckedChangeListener((button, checked) -> {
                 if (singleSelection == null) {
                     if (checked) selected.add(option);
                     else selected.remove(option);
                 } else if (checked) {
                     singleSelection[0] = option;
-                    for (int i = 0; i < parent.getChildCount(); i++) {
-                        View child = parent.getChildAt(i);
-                        if (child instanceof CheckBox && child != check) ((CheckBox) child).setChecked(false);
-                    }
                     if (onSingleSelected != null) onSingleSelected.accept(option);
                 } else if (option.equals(singleSelection[0])) {
                     singleSelection[0] = "";
                     if (onSingleSelected != null) onSingleSelected.accept("");
                 }
             });
-            parent.addView(check, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            group.addView(chip);
         }
     }
 
