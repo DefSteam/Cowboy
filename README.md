@@ -42,7 +42,7 @@ To build and publish a GitHub Release with the APK attached:
 ./release.sh
 ```
 
-The script stages and commits local changes, pushes the current branch to `origin`, then builds the APK locally and creates release tag `v<versionName>` at that pushed commit. If the project folder is not a Git checkout, it clones the release repository into a temporary folder, syncs the local project files there, and pushes from that clone. It uploads one APK, named `Cowboy-<versionName>.apk`. Increase both `versionName` and `versionCode` for each release. The default release repository is `DefSteam/Cowboy`; set `COWBOY_RELEASE_REPO=OWNER/REPO` to publish to a different repository.
+The script stages and commits local changes, pushes them to the `master` branch, then builds the APK locally and creates release tag `v<versionName>` at that pushed commit. If the project folder is not a Git checkout, it clones the release repository into a temporary folder, syncs the local project files there, and pushes from that clone. It uploads one APK, named `Cowboy-<versionName>.apk`. Increase both `versionName` and `versionCode` for each release. The default release repository is `DefSteam/Cowboy`; set `COWBOY_RELEASE_REPO=OWNER/REPO` to publish to a different repository.
 
 If that release tag already exists, `release.sh` offers to increment the patch version (for example, `0.1.0` to `0.1.1`) and `versionCode` before pushing and publishing the next release.
 

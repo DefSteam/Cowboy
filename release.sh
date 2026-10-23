@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO="${COWBOY_RELEASE_REPO:-DefSteam/Cowboy}"
+SOURCE_BRANCH="master"
 APK="$ROOT_DIR/app/build/outputs/apk/debug/app-debug.apk"
 PURGE_EXISTING_RELEASES=0
 case "${1:-}" in
@@ -28,7 +29,7 @@ push_local_changes() {
         echo "No Git checkout found here; preparing a temporary clone of $REPO."
         TEMP_PUSH_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/cowboy-release.XXXXXX")"
         PUSH_WORKTREE="$TEMP_PUSH_ROOT/repo"
-        gh repo clone "$REPO" "$PUSH_WORKTREE"
+        gh repo clone "$REPO" "$PUSH_WORKTREE" -- --branch "$SOURCE_BRANCH"
         while IFS= read -r -d '' tracked_file; do
             if [[ ! -e "$ROOT_DIR/$tracked_file" ]]; then
                 git -C "$PUSH_WORKTREE" rm -q -- "$tracked_file"
@@ -41,12 +42,6 @@ push_local_changes() {
             --exclude='./.ssh' --exclude='./.config' --exclude='./.env*' \
             -cf - . | tar -C "$PUSH_WORKTREE" -xf -
     fi
-    local branch
-    branch="$(git -C "$PUSH_WORKTREE" branch --show-current)"
-    if [[ -z "$branch" ]]; then
-        echo "Cannot determine the source branch to push." >&2
-        exit 1
-    fi
     if ! git -C "$PUSH_WORKTREE" remote get-url origin >/dev/null 2>&1; then
         echo "Git remote 'origin' is not configured." >&2
         exit 1
@@ -56,9 +51,9 @@ push_local_changes() {
     if ! git -C "$PUSH_WORKTREE" diff --cached --quiet; then
         git -C "$PUSH_WORKTREE" commit -m "Prepare Cowboy $VERSION_NAME release"
     fi
-    git -C "$PUSH_WORKTREE" push --set-upstream origin "$branch"
+    git -C "$PUSH_WORKTREE" push origin "HEAD:$SOURCE_BRANCH"
     RELEASE_TARGET="$(git -C "$PUSH_WORKTREE" rev-parse HEAD)"
-    echo "Pushed $branch to origin at $RELEASE_TARGET."
+    echo "Pushed source to origin/$SOURCE_BRANCH at $RELEASE_TARGET."
     SOURCE_PUSHED=1
 }
 
