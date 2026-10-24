@@ -1,57 +1,49 @@
 # Cowboy
 
-Cowboy records sick animals found during feedlot pen walks and tracks pulling, treatment, and destination pens. Records and feedlot settings are stored on the device, so the app works offline.
+Cowboy is a feedlot health tracker delivered as an installable Progressive Web App (PWA) and an Android APK. The canonical app UI, records, and feedlot configuration live in [`web/`](web/). Gradle copies those files into the Android app's generated assets, and Android opens that same app in a WebView. Make animal-workflow changes in `web/` only.
 
-## First-run setup
+The Android wrapper retains Android-only functions for sharing debug crash reports and checking/installing APK releases. It does not contain a second animal-tracking UI or data model.
 
-Open **Settings** from the top app bar's more menu and enter all pens under East or West, one per line. Pen names can include letters, numbers, or combined identifiers such as `2 and 15`. Pens are selected through an East/West section picker and a tap-friendly grid. The health issue list order is the order shown when entering an animal. Destination choices can include their purpose, for example `8 — Hospital` or `44SP — Buller / fat ration`.
+## Test the web app
 
-The setup screen can export a versioned JSON configuration to share with another device, or import one. Configuration files contain choice lists, not animal records.
+Run the local Python server from the repository root:
 
-The interface uses Google's Material Components for Android, including a top app bar, Material buttons, cards, input fields, and selection dialogs.
+```sh
+./web/serve.sh
+```
 
-## Debug crash reports
+Open `http://localhost:8080`. Choose another port with `./web/serve.sh 9000`. Stop the server with Ctrl+C. The script needs Python 3.
 
-Debug builds save uncaught crash details on the device, including the app version, Android version, device model, crashing thread, and Java stack trace. The next time the app opens, it offers to share the report. You can also use **Share crash report** from the top app bar menu. Reports stay on the device unless you choose a share destination; no crash upload service is configured.
+To install it, visit the HTTPS website from Chrome on Android and choose **Install app**. On iPhone or iPad, open it in Safari, tap **Share**, then **Add to Home Screen**.
 
-## Daily workflow
+## Build Android
 
-- **Enter new sick animal:** record its found-in pen, health issue, color, regular tag if visible, notes, and any existing treatment tag.
-- **Today's pull and treatment list:** mark animals pulled, record treatment and notes, add a treatment tag if needed, and select a destination pen.
-- **History:** review each day's records and follow-up status.
-
-## Build and publish a release locally
-
-Requirements: Java 17 or newer, Gradle 9.6 or newer, Android SDK Platform 37, and GitHub CLI (`gh`). Sign in once with `gh auth login`.
-
-Build a debug APK for local testing:
+Requirements: Java 17 or newer, Gradle, and Android SDK Platform 37. Build a debug APK with:
 
 ```sh
 ./build.sh
 ```
 
-Install it on a connected device with:
+The APK is written to `app/build/outputs/apk/debug/app-debug.apk`. Gradle synchronizes `web/` into generated Android assets before building, so edits to the shared app are included automatically. Install on a connected device with:
 
 ```sh
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-To build and publish a GitHub Release with the APK attached:
+## Host the web app
+
+The static site is in `web/` and can be served by any HTTPS static host. For GitHub Pages, enable **GitHub Actions** as the Pages source and run the **Deploy Cowboy web app** workflow in the Actions tab.
+
+The PWA shell is cached for offline startup. Animal records and settings are stored in local browser storage on each device; there is no shared cloud database yet. Use **Settings → Export backup** and **Import backup** to move data between devices.
+
+## Release Android
+
+Sign in with GitHub CLI (`gh auth login`), then run:
 
 ```sh
 ./release.sh
 ```
 
-The script stages and commits local changes, pushes them to the `master` branch, then builds the APK locally and creates release tag `v<versionName>` at that pushed commit. If the project folder is not a Git checkout, it clones the release repository into a temporary folder, syncs the local project files there, and pushes from that clone. It uploads one APK, named `Cowboy-<versionName>.apk`. Increase both `versionName` and `versionCode` for each release. The default release repository is `DefSteam/Cowboy`; set `COWBOY_RELEASE_REPO=OWNER/REPO` to publish to a different repository.
+The script commits and pushes local source changes to `master`, builds the Android APK, and publishes `Cowboy-<version>.apk` to the matching GitHub Release. If that release tag already exists, it offers to increment `versionName` and `versionCode`. `Check for update` in the Android app downloads a newer compatible APK release.
 
-If that release tag already exists, `release.sh` offers to increment the patch version (for example, `0.1.0` to `0.1.1`) and `versionCode` before pushing and publishing the next release.
-
-To remove every existing GitHub Release and its tag, then publish a clean versioned release, run:
-
-```sh
-./release.sh --purge-existing-releases
-```
-
-This deletes all releases and release tags from the selected repository. When releases exist, the script increments the patch version and `versionCode` before publishing the replacement release.
-
-**Check for update** asks GitHub for the latest public release. If a newer `v<versionName>` release is available, Cowboy downloads the matching `Cowboy-<versionName>.apk` asset and opens Android’s package installer. The first update may ask you to allow installs from Cowboy in Android settings. The update APK must be signed with the same local debug key as the installed app; building and releasing from the same computer preserves that key. The repository must be public for anonymous in-app checks and downloads.
+Debug builds save uncaught Android crash details locally. In the Android app, open **Settings → Share crash report** to send the latest report through an app on the device.
