@@ -188,3 +188,8 @@
 .config-row-wrap.preview-delete .config-delete-action,.config-row-wrap.preview-edit .config-edit-action{filter:brightness(.82)}.config-row-wrap.swipe-armed.preview-delete .config-delete-action,.config-row-wrap.swipe-armed.preview-edit .config-edit-action{filter:brightness(1.12)}.config-row-wrap.preview-delete .config-delete-action svg,.config-row-wrap.preview-edit .config-edit-action svg{transform:scale(1.12);transition:transform .12s ease}.config-swipe-action{transition:filter .12s ease}
 
 .config-list-row{transition:transform .22s cubic-bezier(.2,.75,.25,1),box-shadow .18s ease,border-color .18s ease}.config-row-wrap.preview-delete .config-delete-action,.config-row-wrap.preview-edit .config-edit-action{filter:brightness(.9)}.config-row-wrap.swipe-armed.preview-delete .config-delete-action,.config-row-wrap.swipe-armed.preview-edit .config-edit-action{filter:brightness(1.12)}
+/* Extend swipe actions beneath the row's rounded edge to prevent hairline gaps. */
+.config-swipe-action{width:96px}
+.config-delete-action{right:-4px}
+.config-edit-action{left:-4px}
+@media(max-width:380px){.config-swipe-action{width:88px}.config-delete-action{right:-4px}.config-edit-action{left:-4px}}
