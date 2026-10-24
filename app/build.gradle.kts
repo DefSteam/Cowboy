@@ -21,8 +21,8 @@ android {
         applicationId = "com.cowboy.app"
         minSdk = 23
         targetSdk = 35
-        versionCode = 30
-        versionName = "0.1.30"
+        versionCode = 31
+        versionName = "0.1.31"
     }
 
 }

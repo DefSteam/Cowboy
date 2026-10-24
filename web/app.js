@@ -18,7 +18,6 @@ const DEFAULT_CONFIG = {
 let state = loadState();
 let configDraft = null;
 let storageWriteFailed = false;
-let storageEstimateAt = 0;
 let deferredInstall = null;
 let currentActionId = null;
 let editingRecordId = null;
@@ -108,9 +107,9 @@ function renderHistory(){
   empty.querySelector('p').textContent=selectedRecords.length&&!visible.length?'Try another search term.':historySelectedDate?'No animals were entered for this date.':'Choose a date with records to view its animals.';
 }
 function shiftHistoryMonth(amount){historyMonthCursor=new Date(historyMonthCursor.getFullYear(),historyMonthCursor.getMonth()+amount,1,12);const prefix=`${historyMonthCursor.getFullYear()}-${String(historyMonthCursor.getMonth()+1).padStart(2,'0')}`;historySelectedDate=state.records.map(r=>r.date).filter(date=>date?.startsWith(prefix)).sort().at(-1)||null;renderHistory();}
-function renderStorageStatus(){const connection=document.querySelector('#connectionStatus'),dot=document.querySelector('#connectionDot'),usage=document.querySelector('#storageUsageStatus'),settings=document.querySelector('#settingsStorageStatus');if(!connection)return;const statusText='Offline';connection.textContent=statusText;dot.classList.add('offline');let dataBytes=0;try{dataBytes=new Blob([JSON.stringify(state)]).size;}catch{}const formatBytes=bytes=>bytes<1024?`${bytes} B`:`${(bytes/1024).toFixed(1)} KB`;const summary=storageWriteFailed?`Save problem · ${formatBytes(dataBytes)} of app data`:`Saved on this device · ${formatBytes(dataBytes)} of app data`;usage.textContent=summary;if(settings)settings.textContent=`${statusText} · ${summary}`;const now=Date.now();if(now-storageEstimateAt>60000&&navigator.storage?.estimate){storageEstimateAt=now;navigator.storage.estimate().then(({usage:used,quota})=>{const detail=used!=null?`Browser storage: ${formatBytes(used)} used${quota?` of ${formatBytes(quota)}`:''}`:'';const node=document.querySelector('#settingsStorageStatus');if(node&&detail){let currentBytes=0;try{currentBytes=new Blob([JSON.stringify(state)]).size;}catch{}const currentSummary=storageWriteFailed?`Save problem · ${formatBytes(currentBytes)} of app data`:`Saved on this device · ${formatBytes(currentBytes)} of app data`;node.textContent=`Offline · ${currentSummary} · ${detail}`;}}).catch(()=>{});}}
+function renderStorageStatus(){const connection=document.querySelector('#connectionStatus'),dot=document.querySelector('#connectionDot');if(!connection)return;connection.textContent=storageWriteFailed?'Offline · save problem':'Offline';dot.classList.toggle('save-error',storageWriteFailed);}
 function render(){
-  const today=dateKey(); document.querySelector('#todayDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+  const today=dateKey(),todayDate=new Date();document.querySelector('#todayTitle').textContent=todayDate.toLocaleDateString(undefined,{weekday:'long'});document.querySelector('#todayDate').textContent=todayDate.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
   const checkedTodayRecords=state.records.filter(r=>r.status==='moved'&&r.checkedDate===today);
   const todayRecords=state.records.filter(r=>r.date===today&&r.status!=='removed'&&r.status!=='fine'&&!checkedTodayRecords.includes(r));
   const watchRecords=state.records.filter(r=>r.status==='watch'&&r.followUpDate<=today);
