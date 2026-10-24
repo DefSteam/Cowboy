@@ -128,8 +128,6 @@ function render(){
 }
 function selectPage(pageId){ document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===pageId));document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('selected',b.dataset.page===pageId));if(pageId==='historyPage')render(); }
 document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>selectPage(b.dataset.page)));
-let lastNavigationScrollY=window.scrollY,navigationScrollQueued=false;
-window.addEventListener('scroll',()=>{if(navigationScrollQueued)return;navigationScrollQueued=true;requestAnimationFrame(()=>{const y=Math.max(0,window.scrollY),delta=y-lastNavigationScrollY,atBottom=window.innerHeight+y>=document.documentElement.scrollHeight-48,nav=document.querySelector('.bottom-nav');if(y<32||atBottom||delta<-8)nav.classList.remove('nav-hidden');else if(delta>8)nav.classList.add('nav-hidden');if(Math.abs(delta)>8||y<32||atBottom)lastNavigationScrollY=y;navigationScrollQueued=false;});},{passive:true});
 document.querySelector('#historySearch').addEventListener('input',render);
 document.querySelector('#historyPrevMonth').onclick=()=>shiftHistoryMonth(-1);
 document.querySelector('#historyNextMonth').onclick=()=>shiftHistoryMonth(1);
