@@ -23,11 +23,12 @@ The app shell is cached for offline startup. Records and configuration are kept 
 
 ### Import and export formats
 
-Settings provides two versioned JSON formats:
+Settings provides versioned JSON formats:
 
 - **Cowboy backup** (`format: "cowboy-backup"`) contains both configuration and animal records. Importing replaces the device's current configuration and records.
 - **Cowboy animal data** (`format: "cowboy-animal-data"`) contains records only. Importing merges records, skips IDs already on the device, and does not change configuration.
+- **Cowboy configuration** (`format: "cowboy-config"`) contains feedlot setup only. Importing replaces configuration and keeps animal records.
 
-Both formats include `schemaVersion` (currently `1`) and `exportedAt`. Keep the `format` and `schemaVersion` fields when handling these files. The importer accepts legacy full backups without a format/version as schema version `0`; it also accepts legacy animal exports that are plain arrays of records. Newer unsupported schema versions are rejected with an update message rather than partially imported. When the format changes, increment `DATA_SCHEMA_VERSION` in `app.js` and add explicit migration handling for older versions before changing their meaning.
+Each format includes `schemaVersion` (currently `1`) and `exportedAt`. Keep the `format` and `schemaVersion` fields when handling these files. The importer accepts legacy full backups without a format/version as schema version `0`; it also accepts legacy animal exports that are plain arrays of records. Newer unsupported schema versions are rejected with an update message rather than partially imported. When the formats change, increment the relevant schema version in `app.js` and add explicit migration handling for older versions before changing their meaning.
 
 The Android project at the repository root is a small WebView shell around these assets. It provides the Android release updater and debug crash-report sharing without duplicating the feedlot interface or data model.

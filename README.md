@@ -38,7 +38,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 The static site is in `web/` and can be served by any HTTPS static host. For GitHub Pages, enable **GitHub Actions** as the Pages source and run the **Deploy Cowboy web app** workflow in the Actions tab.
 
-The PWA shell is cached for offline startup. Animal records and settings are stored in local browser storage on each device; there is no shared cloud database yet. Use **Settings → Export backup** and **Import backup** to move data between devices.
+The PWA shell is cached for offline startup. Animal records and settings are stored in local browser storage on each device; there is no shared cloud database yet. Use **Settings → Export backup** and **Import backup** to move data between devices, or export/import feedlot configuration separately without animal records.
 
 ## Release Android
 
