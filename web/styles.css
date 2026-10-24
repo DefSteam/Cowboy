@@ -73,3 +73,4 @@
 .card-expand-hint span:last-child{font-size:15px;line-height:1}
 .card-expanded-details{padding-top:2px}
 .card-expanded-details .record-flag-group{margin-top:10px}
+*{-webkit-tap-highlight-color:transparent}
