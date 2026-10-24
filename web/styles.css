@@ -232,8 +232,20 @@
 .android-tools-card .update-heading p{margin:4px 0 0;color:var(--muted);font-size:11px}
 .update-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;background:#e8f0e8;color:var(--green);font-size:22px;font-weight:700}
 .update-status{padding:10px 12px;border-radius:11px;background:#f0f3ef;color:#536052;font-size:12px;line-height:1.45}
+.update-status:empty{display:none}
 .update-progress-panel{padding:12px;background:#fff;border:1px solid #e1e8df;border-radius:12px}
 .update-progress-labels{font-size:11px}
 .update-progress-track{height:7px;background:#e7ece6}
 .android-tools-actions{justify-content:flex-start}
 .android-tools-actions #checkAndroidUpdate{min-width:160px;min-height:44px}
+
+/* Android-style navigation: slim destination bar with a raised Home control. */
+.bottom-nav{height:calc(56px + env(safe-area-inset-bottom));align-items:flex-end;justify-content:space-between;gap:0;overflow:visible;padding:0 max(22px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(22px,env(safe-area-inset-left));background:rgba(255,255,255,.98);border-top:1px solid #e7eae5;box-shadow:0 -4px 16px #253a2b0a}
+.nav-item{width:76px;max-width:none;flex:none;min-height:49px;gap:3px;padding:3px 4px 6px;border-radius:13px 13px 0 0;background:transparent;color:#777f76;font-size:9px;font-weight:600}
+.nav-item span{font-size:19px;line-height:1}
+.nav-item.selected{background:transparent;color:var(--green)}
+.nav-item[data-page="todayPage"]{position:absolute;left:50%;top:-22px;transform:translateX(-50%);z-index:1;width:78px;max-width:none;height:68px;min-height:68px;flex:none;flex-direction:column;justify-content:center;gap:4px;padding:7px 8px;border:3px solid #f6f7f3;border-radius:23px;background:#e7eee7;color:var(--green);font-size:10px;font-weight:750;box-shadow:0 4px 12px #243d2a26}
+.nav-item[data-page="todayPage"] span{font-size:25px}
+.nav-item[data-page="todayPage"].selected{background:var(--green);color:#fff;box-shadow:0 5px 14px #243d2a38}
+.toast{bottom:calc(108px + env(safe-area-inset-bottom))}
+@media(min-width:700px){.bottom-nav{height:60px}.nav-item[data-page="todayPage"]{width:82px;height:70px;min-height:70px;top:-24px}.toast{bottom:108px}}
