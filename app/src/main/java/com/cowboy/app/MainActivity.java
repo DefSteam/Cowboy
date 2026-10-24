@@ -1,9 +1,9 @@
 package com.cowboy.app;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -34,11 +34,17 @@ public final class MainActivity extends Activity {
     private static final int PICK_FILE = 610;
     private static final int INSTALL_PERMISSION = 611;
     private static final int SAVE_JSON_FILE = 612;
+    private static final String UPDATE_PREFS = "cowboy_update";
     private static final String RELEASES_API = "https://api.github.com/repos/DefSteam/Cowboy/releases/latest";
 
     private WebView webView;
     private ValueCallback<Uri[]> fileChooserCallback;
     private File pendingUpdateApk;
+    private String pendingUpdateVersion;
+    private volatile String availableUpdateUrl;
+    private volatile String availableUpdateVersion;
+    private volatile boolean updateCheckRunning;
+    private volatile boolean updateDownloadRunning;
     private String pendingExportContents;
 
     @Override
@@ -83,6 +89,7 @@ public final class MainActivity extends Activity {
         });
         setContentView(webView);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
+        restorePendingUpdate();
         webView.loadUrl("file:///android_asset/index.html");
     }
 
@@ -106,13 +113,8 @@ public final class MainActivity extends Activity {
                     toast("Could not save the Cowboy data file");
                 }
             }
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (pendingUpdateApk != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+        } else if (requestCode == INSTALL_PERMISSION
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 && getPackageManager().canRequestPackageInstalls()) {
             installPendingUpdate();
         }
@@ -133,6 +135,11 @@ public final class MainActivity extends Activity {
     private final class CowboyBridge {
         @JavascriptInterface public String versionName() { return BuildConfig.VERSION_NAME; }
         @JavascriptInterface public void checkForUpdate() { MainActivity.this.checkForUpdate(); }
+        @JavascriptInterface public String updateState() { return MainActivity.this.updateStateJson(); }
+        @JavascriptInterface public void downloadUpdate() { MainActivity.this.downloadUpdate(); }
+        @JavascriptInterface public void installUpdate() {
+            runOnUiThread(MainActivity.this::installPendingUpdate);
+        }
         @JavascriptInterface public void shareCrashReport() {
             runOnUiThread(MainActivity.this::shareLatestCrashReport);
         }
@@ -157,7 +164,11 @@ public final class MainActivity extends Activity {
     }
 
     private void checkForUpdate() {
-        toast("Checking for Cowboy updates…");
+        if (updateCheckRunning || updateDownloadRunning) return;
+        updateCheckRunning = true;
+        availableUpdateUrl = null;
+        availableUpdateVersion = null;
+        reportUpdateState("checking", "Checking for the latest version…");
         new Thread(() -> {
             HttpURLConnection connection = null;
             try {
@@ -184,48 +195,85 @@ public final class MainActivity extends Activity {
                 }
                 if (downloadUrl == null) throw new IllegalStateException("Release APK not found: " + assetName);
                 if (compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) {
-                    runOnUiThread(() -> toast("Cowboy is up to date"));
+                    reportUpdateCallback("onCowboyUpdateCurrent", JSONObject.quote(BuildConfig.VERSION_NAME));
                     return;
                 }
-                File apk = downloadApk(downloadUrl);
-                runOnUiThread(() -> offerUpdate(latestVersion, apk));
+                availableUpdateUrl = downloadUrl;
+                availableUpdateVersion = latestVersion;
+                reportUpdateCallback("onCowboyUpdateAvailable", JSONObject.quote(latestVersion));
             } catch (Exception error) {
                 String message = error.getMessage() == null ? "Could not check for updates" : error.getMessage();
-                runOnUiThread(() -> new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Update check failed").setMessage(message)
-                        .setPositiveButton("OK", null).show());
+                reportUpdateCallback("onCowboyUpdateError", JSONObject.quote(message));
             } finally {
                 if (connection != null) connection.disconnect();
+                updateCheckRunning = false;
             }
         }, "cowboy-update-check").start();
     }
 
-    private File downloadApk(String urlText) throws Exception {
+    private void downloadUpdate() {
+        if (updateDownloadRunning) return;
+        final String url = availableUpdateUrl;
+        final String version = availableUpdateVersion;
+        if (url == null || version == null) {
+            reportUpdateCallback("onCowboyUpdateError", JSONObject.quote("Check for updates again before downloading."));
+            return;
+        }
+        updateDownloadRunning = true;
+        reportUpdateState("downloading", "Downloading Cowboy " + version + "…");
+        new Thread(() -> {
+            try {
+                File apk = downloadApk(url, version);
+                pendingUpdateApk = apk;
+                pendingUpdateVersion = version;
+                getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE).edit()
+                        .putString("apk_path", apk.getAbsolutePath())
+                        .putString("version", version).apply();
+                availableUpdateUrl = null;
+                availableUpdateVersion = null;
+                reportUpdateCallback("onCowboyUpdateDownloaded", JSONObject.quote(version));
+            } catch (Exception error) {
+                String message = error.getMessage() == null ? "Could not download the update" : error.getMessage();
+                reportUpdateCallback("onCowboyUpdateError", JSONObject.quote(message));
+            } finally {
+                updateDownloadRunning = false;
+            }
+        }, "cowboy-update-download").start();
+    }
+
+    private File downloadApk(String urlText, String version) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(urlText).openConnection();
         connection.setConnectTimeout(15000);
-        connection.setReadTimeout(30000);
-        File directory = new File(getCacheDir(), "updates");
+        connection.setReadTimeout(60000);
+        connection.setRequestProperty("User-Agent", "Cowboy-Android-App");
+        File directory = new File(getFilesDir(), "updates");
         if (!directory.exists() && !directory.mkdirs()) throw new IllegalStateException("Could not create update folder");
         File apk = new File(directory, "Cowboy-update.apk");
-        try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(apk)) {
+        File partial = new File(directory, "Cowboy-update.apk.part");
+        long total = connection.getContentLength(), received = 0;
+        int lastProgress = -2;
+        try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(partial)) {
             byte[] buffer = new byte[16384];
             int length;
-            while ((length = input.read(buffer)) != -1) output.write(buffer, 0, length);
+            while ((length = input.read(buffer)) != -1) {
+                output.write(buffer, 0, length);
+                received += length;
+                int progress = total > 0 ? (int) Math.min(100, received * 100 / total) : -1;
+                if (progress != lastProgress) {
+                    lastProgress = progress;
+                    reportUpdateProgress(version, progress, received, total);
+                }
+            }
         } finally {
             connection.disconnect();
         }
-        if (apk.length() < 1024) throw new IllegalStateException("Downloaded APK is incomplete");
+        if (partial.length() < 1024) {
+            partial.delete();
+            throw new IllegalStateException("Downloaded APK is incomplete");
+        }
+        if (apk.exists() && !apk.delete()) throw new IllegalStateException("Could not replace the previous update file");
+        if (!partial.renameTo(apk)) throw new IllegalStateException("Could not finish saving the update");
         return apk;
-    }
-
-    private void offerUpdate(String version, File apk) {
-        pendingUpdateApk = apk;
-        new AlertDialog.Builder(this)
-                .setTitle("Cowboy " + version + " is available")
-                .setMessage("Download complete. Install the update now?")
-                .setNegativeButton("Later", (dialog, which) -> pendingUpdateApk = null)
-                .setPositiveButton("Install", (dialog, which) -> installPendingUpdate())
-                .show();
     }
 
     private void installPendingUpdate() {
@@ -240,8 +288,52 @@ public final class MainActivity extends Activity {
         Intent install = new Intent(Intent.ACTION_VIEW);
         install.setDataAndType(uri, "application/vnd.android.package-archive");
         install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(install);
-        pendingUpdateApk = null;
+        try {
+            startActivity(install);
+        } catch (ActivityNotFoundException error) {
+            reportUpdateCallback("onCowboyUpdateError", JSONObject.quote("No Android package installer is available."));
+        }
+    }
+
+    private void restorePendingUpdate() {
+        SharedPreferences preferences = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE);
+        String path = preferences.getString("apk_path", null);
+        String version = preferences.getString("version", null);
+        if (path == null || version == null) return;
+        File apk = new File(path);
+        if (compareVersions(BuildConfig.VERSION_NAME, version) >= 0) {
+            preferences.edit().clear().apply();
+            apk.delete();
+        } else if (apk.isFile()) {
+            pendingUpdateApk = apk;
+            pendingUpdateVersion = version;
+        } else {
+            preferences.edit().clear().apply();
+        }
+    }
+
+    private String updateStateJson() {
+        JSONObject state = new JSONObject();
+        try {
+            boolean ready = pendingUpdateApk != null && pendingUpdateApk.isFile();
+            state.put("ready", ready);
+            if (ready) state.put("version", pendingUpdateVersion);
+        } catch (Exception ignored) { }
+        return state.toString();
+    }
+
+    private void reportUpdateState(String state, String message) {
+        reportUpdateCallback("onCowboyUpdateState", JSONObject.quote(state) + "," + JSONObject.quote(message));
+    }
+
+    private void reportUpdateProgress(String version, int progress, long received, long total) {
+        reportUpdateCallback("onCowboyUpdateProgress", JSONObject.quote(version) + "," + progress + "," + received + "," + total);
+    }
+
+    private void reportUpdateCallback(String method, String arguments) {
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript("window.CowboyUpdate&&window.CowboyUpdate." + method + "(" + arguments + ")", null);
+        });
     }
 
     private void shareLatestCrashReport() {

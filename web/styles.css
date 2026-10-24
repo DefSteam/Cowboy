@@ -56,6 +56,8 @@
 .record-menu-item:hover{background:#edf3ed;border-color:#cbd8ca}
 .record-menu-item.destructive{color:#a43c35;border-color:#e7c8c4}
 .record-menu-item.destructive:hover{background:#fff1ef;border-color:#dba9a3}
+.danger-button{border:0;border-radius:12px;padding:11px 15px;min-height:42px;background:#a43f36;color:#fff;font-size:13px;font-weight:700}
+.danger-button:hover{background:#87352e}
 .treatment-summary{margin-top:13px;padding:11px 13px;background:#f3f6f2;border:1px solid #e4ebe2;border-left:3px solid var(--green);border-radius:11px}
 .treatment-summary h3{margin:0;color:#667267;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
 .treatment-products{margin:5px 0 8px;color:#263b2c;font-size:14px;font-weight:750;line-height:1.4}
@@ -74,3 +76,17 @@
 .card-expanded-details{padding-top:2px}
 .card-expanded-details .record-flag-group{margin-top:10px}
 *{-webkit-tap-highlight-color:transparent}
+.android-tools-card{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+.android-tools-card>div:first-child{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.android-tools-card>div:first-child p{margin:0}
+.update-status{color:#58665a;font-size:12px;line-height:1.45}
+.update-progress-panel{padding:11px 12px;background:#f4f7f3;border:1px solid #e4eae2;border-radius:12px}
+.update-progress-labels{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;color:#526153;font-size:11px;font-weight:650}
+.update-progress-track{height:8px;overflow:hidden;border-radius:10px;background:#dfe7df}
+.update-progress-track>div{height:100%;width:0;border-radius:inherit;background:var(--green);transition:width .2s ease}
+.update-progress-track.indeterminate>div{width:36%;animation:update-indeterminate 1.25s ease-in-out infinite alternate}
+@keyframes update-indeterminate{from{transform:translateX(-20%)}to{transform:translateX(200%)}}
+.android-tools-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.android-tools-actions #checkAndroidUpdate{min-width:155px}
+.android-tools-actions #checkAndroidUpdate:disabled{opacity:.62;cursor:progress;box-shadow:none}
+@media(max-width:380px){.android-tools-card>div:first-child{align-items:flex-start;flex-direction:column;gap:2px}.android-tools-actions{align-items:stretch;flex-direction:column}.android-tools-actions button{width:100%}}
