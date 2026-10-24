@@ -122,3 +122,34 @@
 .config-toggle{min-height:32px;padding:7px 10px;border:1px solid #cbd4c9;border-radius:20px;background:#fff;color:#4d594e;font-size:11px;font-weight:650}
 .config-toggle.active{border-color:#55795c;background:#55795c;color:#fff;box-shadow:0 2px 5px #304c3430}
 .config-toggle:hover{border-color:#69866c}
+.config-row-list{display:grid;gap:6px;margin:0 0 11px}
+.config-row-wrap{position:relative;min-width:0;overflow:hidden;border-radius:11px;background:#e9eee8;isolation:isolate}
+.config-swipe-action{position:absolute;inset-block:0;width:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#fff;font-size:10px;font-weight:750;letter-spacing:.15px;cursor:pointer;user-select:none}
+.config-swipe-action svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.config-swipe-action span{color:#fff}
+.config-delete-action{right:0;background:#c74740}
+.config-edit-action{left:0;background:#3678c8}
+.config-list-row{position:relative;z-index:1;min-height:47px;display:flex;align-items:center;gap:10px;padding:5px 10px 5px 5px;border:1px solid #e3e9e1;border-radius:11px;background:#fff;color:#38463a;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;touch-action:pan-y;user-select:none}
+.config-list-row.drag-active{z-index:3;transition:none;box-shadow:0 8px 22px #27392b30;border-color:#8fa790;opacity:.96}
+.config-list-row.drop-target{border-top:3px solid #5a7c60}
+.config-drag-handle{flex:none;width:32px;height:34px;display:grid;place-items:center;padding:0;border:0;border-radius:8px;background:transparent;color:#8a9489;touch-action:none;cursor:grab}
+.config-drag-handle:active{color:#3d6846;cursor:grabbing}
+.config-drag-handle svg{width:19px;height:23px;fill:currentColor}
+.config-row-label{min-width:0;flex:1;overflow-wrap:anywhere;font-size:12px;font-weight:650;line-height:1.35}
+.config-row-edit-hint{flex:none;color:#9aa196;font-size:9px;font-weight:550}
+.config-row-wrap.open-delete .config-list-row{transform:translateX(-88px)!important}
+.config-row-wrap.open-edit .config-list-row{transform:translateX(88px)!important}
+.config-row-wrap.preview-delete .config-list-row{border-color:#d98680}
+.config-row-wrap.preview-edit .config-list-row{border-color:#83a8d5}
+.config-group-heading>.config-row-wrap{width:100%;margin-bottom:8px}
+.config-group-card>.config-row-list{padding-left:9px}
+.config-group-card>.config-add-row{margin-left:9px}
+.config-new-group{margin-top:12px;padding-top:12px;border-top:1px solid #edf0eb}
+.config-item-edit-field{display:grid;gap:7px}
+.config-tabs{position:sticky;top:-18px;z-index:5;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:0 -21px 13px;padding:9px 14px 8px;border-bottom:1px solid #e5eae3;background:#f8faf7}
+.config-tab{min-height:40px;padding:7px 5px;border:1px solid transparent;border-radius:10px;background:transparent;color:#667166;font-size:11px;font-weight:700;white-space:nowrap}
+.config-tab:hover{background:#edf2eb;color:#405442}
+.config-tab.active{border-color:#dce7da;background:#eaf1e8;color:#355b3c;box-shadow:inset 0 -2px #55795c}
+.config-tab-panel{display:grid;gap:13px}
+.config-tab-panel[hidden]{display:none}
+@media(max-width:380px){.config-row-edit-hint{font-size:8px}.config-swipe-action{width:80px}.config-row-wrap.open-delete .config-list-row{transform:translateX(-80px)!important}.config-row-wrap.open-edit .config-list-row{transform:translateX(80px)!important}}

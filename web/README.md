@@ -1,6 +1,8 @@
-# Cowboy installable web app
+# Cowboy · Feedlot Health Tracker
 
-This directory is the single source for Cowboy's interface, records, and feedlot configuration. It is a static Progressive Web App (PWA) that can be hosted from any HTTPS static host; no server-side build or database is required. The Android Gradle build packages these exact files into the APK. The repository includes a manual GitHub Pages workflow to publish this directory.
+Cowboy helps feedlot crews record sick cattle as they walk the pens, organize pulls and treatments, and follow animals through daily rechecks. Configure pens, diagnoses, symptoms, colors, products, and treatment rules for your feedlot. This installable Progressive Web App works on Android and iPhone/iPad.
+
+This directory is the single source for Cowboy's interface, records, and feedlot configuration. It is a static PWA that can be hosted from any HTTPS static host; no server-side build or database is required. The Android Gradle build packages these exact files into the APK. The repository includes a manual GitHub Pages workflow to publish this directory.
 
 ## Run locally
 

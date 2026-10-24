@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Cowboy Feedlot Health",
   "short_name": "Cowboy",
-  "description": "Daily feedlot health and treatment tracker",
+  "description": "Record sick cattle, manage pulls and treatments, and follow daily rechecks.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

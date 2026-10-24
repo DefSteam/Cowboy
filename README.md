@@ -1,6 +1,10 @@
-# Cowboy
+# Cowboy · Feedlot Health Tracker
 
-Cowboy is a feedlot health tracker delivered as an installable Progressive Web App (PWA) and an Android APK. The canonical app UI, records, and feedlot configuration live in [`web/`](web/). Gradle copies those files into the Android app's generated assets, and Android opens that same app in a WebView. Make animal-workflow changes in `web/` only.
+Cowboy helps feedlot crews record sick cattle during pen checks, organize pulls and treatments, and follow animals through daily rechecks. It runs as an installable web app on Android and iPhone/iPad, with an Android APK for crews who prefer a native install.
+
+Track pen and animal tags, diagnosis and symptom flags, animal appearance and color, treatment products, destination, notes, and daily history. Pens, diagnoses, symptoms, colors, products, and treatment rules can be configured for each feedlot.
+
+The shared app interface, records, and feedlot configuration live in [`web/`](web/). Gradle packages those same files into the Android app, which adds Android update installation and debug crash-report sharing. Make animal-workflow changes in `web/` only.
 
 The Android wrapper retains Android-only functions for sharing debug crash reports and checking/installing APK releases. It does not contain a second animal-tracking UI or data model.
 

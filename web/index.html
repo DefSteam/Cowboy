@@ -4,14 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#355b43">
-  <meta name="description" content="Cowboy feedlot health and treatment tracker">
+  <meta name="description" content="Record sick cattle during pen checks, organize pulls and treatments, and follow daily rechecks with Cowboy, the configurable feedlot health tracker.">
+  <meta property="og:title" content="Cowboy · Feedlot Health Tracker">
+  <meta property="og:description" content="Record sick cattle, manage pulls and treatments, and follow daily rechecks with an installable web app for feedlot crews.">
+  <meta property="og:type" content="website">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/cowboy.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/cowboy-192.png">
   <link rel="stylesheet" href="styles.css">
-  <title>Cowboy · Feedlot health</title>
+  <title>Cowboy · Feedlot Health Tracker</title>
 </head>
 <body>
   <header class="app-header">
@@ -62,6 +65,7 @@
   <dialog id="recordMenuDialog" class="app-dialog compact-dialog"><form method="dialog"><div class="dialog-heading"><h2>Manage animal</h2><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><div id="recordMenuItems" class="record-menu-items"></div></form></dialog>
   <dialog id="actionDialog" class="app-dialog"><form id="actionForm" method="dialog"><div class="dialog-heading"><div><p class="eyebrow" id="actionEyebrow">Update record</p><h2 id="actionTitle">Mark pulled</h2></div><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><div class="form-scroll" id="actionContent"></div><div class="dialog-actions"><button class="secondary-button" value="cancel">Cancel</button><button class="primary-button" id="actionSaveButton" value="save">Save</button></div></form></dialog>
   <dialog id="configDialog" class="app-dialog"><form id="configForm" method="dialog"><div class="dialog-heading"><div><p class="eyebrow">Customizable for your feedlot</p><h2>Edit configuration</h2></div><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><div id="configEditor" class="form-scroll config-editor"></div><div class="dialog-actions"><button class="secondary-button" value="cancel">Cancel</button><button class="primary-button" id="saveConfigButton" value="save">Save configuration</button></div></form></dialog>
+  <dialog id="configItemDialog" class="app-dialog compact-dialog"><form id="configItemForm" method="dialog"><div class="dialog-heading"><div><p class="eyebrow">Feedlot configuration</p><h2 id="configItemTitle">Edit option</h2></div><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><div class="form-scroll"><label class="field-label" for="configItemValue">Name</label><input id="configItemValue" autocomplete="off" required></div><div class="dialog-actions"><button class="secondary-button" value="cancel">Cancel</button><button class="primary-button" value="save">Save</button></div></form></dialog>
   <dialog id="messageDialog" class="app-dialog compact-dialog"><form method="dialog"><div class="dialog-heading"><h2 id="messageTitle">Cowboy</h2><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><div id="messageContent" class="message-content"></div><div class="dialog-actions"><button class="primary-button" value="cancel">Done</button></div></form></dialog>
   <dialog id="confirmDialog" class="app-dialog compact-dialog"><form method="dialog"><div class="dialog-heading"><h2 id="confirmTitle">Confirm action</h2><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><div id="confirmMessage" class="message-content"></div><div class="dialog-actions"><button class="secondary-button" value="cancel">Cancel</button><button id="confirmActionButton" class="danger-button" value="confirm">Remove entry</button></div></form></dialog>
   <dialog id="updateAvailableDialog" class="app-dialog compact-dialog"><form method="dialog"><div class="dialog-heading"><h2 id="updateAvailableTitle">Update available</h2><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><div class="message-content">A newer version of Cowboy is ready to download.</div><div class="dialog-actions"><button class="secondary-button" value="cancel">Not now</button><button type="button" id="downloadUpdateButton" class="primary-button">Download update</button></div></form></dialog>
