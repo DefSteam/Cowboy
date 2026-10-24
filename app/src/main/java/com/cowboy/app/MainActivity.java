@@ -501,12 +501,20 @@ public final class MainActivity extends Activity {
         if (defaults != null) {
             for (String product : options) if (defaults.contains(product)) selected.add(product);
         }
+        Set<String> required = new LinkedHashSet<>();
+        List<String> requiredForBase = config.requiredSecondaryByBase.get(base);
+        if (requiredForBase != null) {
+            for (String product : options) if (requiredForBase.contains(product)) {
+                required.add(product);
+                selected.add(product);
+            }
+        }
         ScrollView scroll = new ScrollView(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(20), dp(8), dp(20), dp(8));
         addText(content, "Choose any compatible secondary products", 15, false);
-        addFlagChips(content, options, selected);
+        addFlagChips(content, options, selected, required);
         scroll.addView(content);
         new MaterialAlertDialogBuilder(this)
                 .setTitle(base + " · secondary products")
@@ -546,17 +554,20 @@ public final class MainActivity extends Activity {
                 "One option per line", true);
         appearance.getEditText().setText(FeedlotConfig.toLines(config.appearanceFlags));
         TextInputLayout baseTreatments = addInput(body, "Treatment base products · choose one",
-                "One product per line: Baytril, Loncor, Intrexa", true);
+                "One product per line: Baytril, Loncor, Increxxa, LA200, Resflor, Excede", true);
         baseTreatments.getEditText().setText(FeedlotConfig.toLines(config.baseTreatments));
         TextInputLayout secondaryTreatments = addInput(body, "Treatment secondary products · can combine",
-                "One product per line: Banamine, Dexamine, Vitamin C", true);
+                "One product per line: Tylan 200, Dexamethasone, Banamine", true);
         secondaryTreatments.getEditText().setText(FeedlotConfig.toLines(config.secondaryTreatments));
         TextInputLayout secondaryCompatibility = addInput(body, "Secondary products allowed with each base",
-                "One base per line: Loncor: Banamine, Dexamine, Vitamin C", true);
+                "One base per line: LA200: Tylan 200, Dexamethasone, Banamine", true);
         secondaryCompatibility.getEditText().setText(toFlagLines(config.secondaryByBase));
         TextInputLayout defaultSecondary = addInput(body, "Secondary products selected by default",
-                "One base per line: Loncor: Vitamin C. These can be toggled for each animal.", true);
+                "One base per line. These start selected but can be toggled for each animal.", true);
         defaultSecondary.getEditText().setText(toFlagLines(config.defaultSecondaryByBase));
+        TextInputLayout requiredSecondary = addInput(body, "Required secondary products · always included",
+                "One base per line: LA200: Tylan 200", true);
+        requiredSecondary.getEditText().setText(toFlagLines(config.requiredSecondaryByBase));
         TextInputLayout destinations = addInput(body, "Treatment destinations and purpose", "8 — Hospital", true);
         destinations.getEditText().setText(FeedlotConfig.toLines(config.destinations));
         addPrimaryButton(body, "Save feedlot settings", () -> {
@@ -572,6 +583,7 @@ public final class MainActivity extends Activity {
             updated.secondaryTreatments = FeedlotConfig.parseLines(text(secondaryTreatments));
             updated.secondaryByBase = parseFlagLines(text(secondaryCompatibility));
             updated.defaultSecondaryByBase = parseFlagLines(text(defaultSecondary));
+            updated.requiredSecondaryByBase = parseFlagLines(text(requiredSecondary));
             updated.destinations = FeedlotConfig.parseLines(text(destinations));
             for (String base : updated.baseTreatments) {
                 if (updated.secondaryTreatments.contains(base)) {
@@ -584,6 +596,14 @@ public final class MainActivity extends Activity {
                 if (!updated.baseTreatments.contains(defaults.getKey()) || compatible == null
                         || !compatible.containsAll(defaults.getValue())) {
                     toast("Default secondary products must be allowed for a listed base product: " + defaults.getKey());
+                    return;
+                }
+            }
+            for (Map.Entry<String, List<String>> required : updated.requiredSecondaryByBase.entrySet()) {
+                List<String> compatible = updated.secondaryByBase.get(required.getKey());
+                if (!updated.baseTreatments.contains(required.getKey()) || compatible == null
+                        || !compatible.containsAll(required.getValue())) {
+                    toast("Required products must be allowed for a listed base product: " + required.getKey());
                     return;
                 }
             }
@@ -1016,11 +1036,21 @@ public final class MainActivity extends Activity {
     }
 
     private void addFlagChips(LinearLayout parent, List<String> options, Set<String> selected) {
-        addFlagChips(parent, options, selected, null, null);
+        addFlagChips(parent, options, selected, null, null, Collections.emptySet());
+    }
+
+    private void addFlagChips(LinearLayout parent, List<String> options, Set<String> selected,
+                             Set<String> locked) {
+        addFlagChips(parent, options, selected, null, null, locked);
     }
 
     private void addFlagChips(LinearLayout parent, List<String> options, Set<String> selected,
                                String[] singleSelection, StringCallback onSingleSelected) {
+        addFlagChips(parent, options, selected, singleSelection, onSingleSelected, Collections.emptySet());
+    }
+
+    private void addFlagChips(LinearLayout parent, List<String> options, Set<String> selected,
+                              String[] singleSelection, StringCallback onSingleSelected, Set<String> locked) {
         if (options == null) return;
         ChipGroup group = new ChipGroup(this);
         group.setSingleLine(false);
@@ -1063,6 +1093,7 @@ public final class MainActivity extends Activity {
                     if (onSingleSelected != null) onSingleSelected.accept("");
                 }
             });
+            if (locked.contains(option)) chip.setEnabled(false);
             group.addView(chip);
         }
     }

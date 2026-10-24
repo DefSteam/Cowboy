@@ -12,7 +12,7 @@ import java.util.Map;
 
 /** Feedlot-specific choices are kept separate from app behavior and animal records. */
 final class FeedlotConfig {
-    static final int FORMAT_VERSION = 5;
+    static final int FORMAT_VERSION = 6;
 
     List<String> eastPens = new ArrayList<>();
     List<String> westPens = new ArrayList<>();
@@ -26,6 +26,7 @@ final class FeedlotConfig {
     List<String> secondaryTreatments = new ArrayList<>();
     Map<String, List<String>> secondaryByBase = new LinkedHashMap<>();
     Map<String, List<String>> defaultSecondaryByBase = new LinkedHashMap<>();
+    Map<String, List<String>> requiredSecondaryByBase = new LinkedHashMap<>();
 
     static FeedlotConfig defaults() {
         FeedlotConfig config = new FeedlotConfig();
@@ -48,14 +49,14 @@ final class FeedlotConfig {
         config.symptomsByIssue.put("Other", list("Looks off", "Not eating", "Weak"));
         Collections.addAll(config.appearanceFlags,
                 "Dull", "Thin", "Lame", "Swollen", "Wound", "Rough coat", "Eye discharge", "Other");
-        Collections.addAll(config.baseTreatments, "Baytril", "Loncor", "Intrexa");
-        Collections.addAll(config.secondaryTreatments, "Banamine", "Dexamine", "Vitamin C");
-        config.secondaryByBase.put("Baytril", list("Banamine", "Dexamine"));
-        config.secondaryByBase.put("Loncor", list("Banamine", "Dexamine", "Vitamin C"));
-        config.secondaryByBase.put("Intrexa", list("Banamine", "Dexamine"));
-        config.defaultSecondaryByBase.put("Baytril", list());
-        config.defaultSecondaryByBase.put("Loncor", list("Vitamin C"));
-        config.defaultSecondaryByBase.put("Intrexa", list());
+        Collections.addAll(config.baseTreatments, "Baytril", "Loncor", "Increxxa", "LA200", "Resflor", "Excede");
+        Collections.addAll(config.secondaryTreatments, "Tylan 200", "Dexamethasone", "Banamine");
+        for (String base : config.baseTreatments) {
+            config.secondaryByBase.put(base, list("Dexamethasone", "Banamine"));
+            config.defaultSecondaryByBase.put(base, list());
+        }
+        config.secondaryByBase.get("LA200").add(0, "Tylan 200");
+        config.requiredSecondaryByBase.put("LA200", list("Tylan 200"));
         config.animalColors = new ArrayList<>();
         config.animalColors.add("Black");
         config.animalColors.add("Red");
@@ -98,6 +99,7 @@ final class FeedlotConfig {
         json.put("secondaryTreatments", toArray(secondaryTreatments));
         json.put("secondaryByBase", toObject(secondaryByBase));
         json.put("defaultSecondaryByBase", toObject(defaultSecondaryByBase));
+        json.put("requiredSecondaryByBase", toObject(requiredSecondaryByBase));
         json.put("animalColors", toArray(animalColors));
         json.put("treatTagColors", toArray(treatTagColors));
         json.put("destinations", toArray(destinations));
@@ -133,6 +135,16 @@ final class FeedlotConfig {
         JSONObject defaultSecondary = json.optJSONObject("defaultSecondaryByBase");
         config.defaultSecondaryByBase = defaultSecondary == null
                 ? defaults.defaultSecondaryByBase : fromObject(defaultSecondary);
+        JSONObject requiredSecondary = json.optJSONObject("requiredSecondaryByBase");
+        config.requiredSecondaryByBase = requiredSecondary != null ? fromObject(requiredSecondary)
+                : (json.has("baseTreatments") ? new LinkedHashMap<>() : defaults.requiredSecondaryByBase);
+        if (version < FORMAT_VERSION && hasPreviousTreatmentDefaults(config)) {
+            config.baseTreatments = defaults.baseTreatments;
+            config.secondaryTreatments = defaults.secondaryTreatments;
+            config.secondaryByBase = defaults.secondaryByBase;
+            config.defaultSecondaryByBase = defaults.defaultSecondaryByBase;
+            config.requiredSecondaryByBase = defaults.requiredSecondaryByBase;
+        }
         config.animalColors = fromArray(json.getJSONArray("animalColors"));
         config.treatTagColors = fromArray(json.getJSONArray("treatTagColors"));
         config.destinations = fromArray(json.getJSONArray("destinations"));
@@ -170,6 +182,23 @@ final class FeedlotConfig {
         List<String> result = new ArrayList<>();
         Collections.addAll(result, values);
         return result;
+    }
+
+    private static boolean hasPreviousTreatmentDefaults(FeedlotConfig config) {
+        List<String> previousBases = list("Baytril", "Loncor", "Intrexa");
+        List<String> previousSecondary = list("Banamine", "Dexamine", "Vitamin C");
+        Map<String, List<String>> previousAllowed = new LinkedHashMap<>();
+        previousAllowed.put("Baytril", list("Banamine", "Dexamine"));
+        previousAllowed.put("Loncor", list("Banamine", "Dexamine", "Vitamin C"));
+        previousAllowed.put("Intrexa", list("Banamine", "Dexamine"));
+        Map<String, List<String>> previousDefault = new LinkedHashMap<>();
+        previousDefault.put("Baytril", list());
+        previousDefault.put("Loncor", list("Vitamin C"));
+        previousDefault.put("Intrexa", list());
+        return config.baseTreatments.equals(previousBases)
+                && config.secondaryTreatments.equals(previousSecondary)
+                && config.secondaryByBase.equals(previousAllowed)
+                && config.defaultSecondaryByBase.equals(previousDefault);
     }
 
     private static JSONObject toObject(Map<String, List<String>> values) throws JSONException {
