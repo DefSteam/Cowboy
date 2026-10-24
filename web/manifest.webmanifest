@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "Cowboy Feedlot Health",
+  "short_name": "Cowboy",
+  "description": "Daily feedlot health and treatment tracker",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f7f3",
+  "theme_color": "#355b43",
+  "icons": [
+    { "src": "icons/cowboy-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/cowboy-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

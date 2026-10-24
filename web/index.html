@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#355b43">
+  <meta name="description" content="Cowboy feedlot health and treatment tracker">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/cowboy.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/cowboy-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>Cowboy · Feedlot health</title>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">C</span><div><strong>Cowboy</strong><small>Feedlot health</small></div></div>
+    <button class="icon-button" id="installButton" hidden aria-label="Install Cowboy" title="Install app">↓</button>
+  </header>
+  <main id="app" class="app-main">
+    <section class="page active" id="todayPage" aria-labelledby="todayTitle">
+      <div class="page-heading"><div><p class="eyebrow" id="todayDate"></p><h1 id="todayTitle">Today</h1></div><span class="count-pill" id="todayCount">0 animals</span></div>
+      <button class="primary-button full-width" id="newAnimalButton"><span>＋</span> Enter sick animal</button>
+      <div id="watchlistSection" class="section-block" hidden><h2>Check again today</h2><div id="watchlistList" class="card-list"></div></div>
+      <div class="section-block"><div class="section-heading"><h2>Today's animals</h2><button class="text-button" id="historyShortcut">History</button></div><div id="todayList" class="card-list"></div><div class="empty-state" id="todayEmpty"><span class="empty-icon">✓</span><strong>All clear for today</strong><p>Add an animal when you find one that needs attention.</p></div></div>
+    </section>
+    <section class="page" id="historyPage" aria-labelledby="historyTitle">
+      <div class="page-heading"><div><p class="eyebrow">Past records</p><h1 id="historyTitle">History</h1></div></div>
+      <label class="search-box"><span>⌕</span><input id="historySearch" type="search" placeholder="Search tag, pen, or notes"></label>
+      <div id="historyList" class="card-list"></div><div class="empty-state" id="historyEmpty"><span class="empty-icon">◷</span><strong>No matching records</strong><p>Daily records will show here after you add animals.</p></div>
+    </section>
+    <section class="page" id="settingsPage" aria-labelledby="settingsTitle">
+      <div class="page-heading"><div><p class="eyebrow">Feedlot setup</p><h1 id="settingsTitle">Settings</h1></div></div>
+      <div class="settings-card"><div><strong>Feedlot configuration</strong><p>Customize sections, pens, health flags, colors, and treatment products.</p></div><button class="secondary-button" id="editConfigButton">Edit lists</button></div>
+      <div class="settings-card"><div><strong>Device data</strong><p>Records are saved on this device and browser.</p></div><div class="backup-actions"><button class="text-button" id="importButton">Import backup</button><button class="text-button" id="exportButton">Export backup</button><input id="importFile" type="file" accept="application/json,.json" hidden></div></div>
+      <p class="help-note">Backups move records between devices. Cloud syncing can be added later.</p>
+    </section>
+  </main>
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-item selected" data-page="todayPage"><span>▦</span>Today</button>
+    <button class="nav-item" data-page="historyPage"><span>◷</span>History</button>
+    <button class="nav-item" data-page="settingsPage"><span>⚙</span>Settings</button>
+  </nav>
+  <dialog id="formDialog" class="app-dialog"><form id="animalForm" method="dialog"><div class="dialog-heading"><div><p class="eyebrow">New daily record</p><h2>Enter sick animal</h2></div><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div>
+    <div class="form-scroll"><label class="field-label">Pen <button type="button" class="inline-pick" id="choosePen">Choose pen</button></label><input id="penInput" required placeholder="Select a pen" readonly>
+      <label class="field-label" for="animalTag">Animal tag <span class="optional">optional</span></label><input id="animalTag" inputmode="numeric" autocomplete="off" placeholder="Tag number">
+      <label class="field-label">What's wrong?</label><div class="chip-area" id="issueChips"></div>
+      <label class="field-label">How it looks</label><div class="chip-area" id="appearanceChips"></div>
+      <label class="field-label">Animal color</label><div class="chip-area" id="colorChips"></div>
+      <details class="optional-details"><summary>Treat tag <span class="optional">if already tagged</span></summary><div class="inline-fields"><label><span class="field-label">Color</span><select id="treatTagColor"></select></label><label><span class="field-label">Number</span><input id="treatTagNumber" placeholder="C823"></label></div><button type="button" class="text-button date-button" id="treatDateButton">＋ Add last treat date</button><span id="treatDateValue" class="date-value"></span></details>
+      <label class="field-label" for="intakeNotes">Notes <span class="optional">optional</span></label><textarea id="intakeNotes" rows="2" placeholder="Anything else to remember"></textarea>
+    </div><div class="dialog-actions"><button class="secondary-button" value="cancel">Cancel</button><button class="primary-button" id="saveAnimalButton" value="save">Save animal</button></div>
+  </form></dialog>
+  <dialog id="choiceDialog" class="app-dialog compact-dialog"><form method="dialog"><div class="dialog-heading"><h2 id="choiceTitle">Choose</h2><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><input id="choiceSearch" class="choice-search" type="search" placeholder="Filter"><div id="choiceContent" class="choice-content"></div></form></dialog>
+  <dialog id="actionDialog" class="app-dialog"><form id="actionForm" method="dialog"><div class="dialog-heading"><div><p class="eyebrow" id="actionEyebrow">Update record</p><h2 id="actionTitle">Mark pulled</h2></div><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><div class="form-scroll" id="actionContent"></div><div class="dialog-actions"><button class="secondary-button" value="cancel">Cancel</button><button class="primary-button" id="actionSaveButton" value="save">Save</button></div></form></dialog>
+  <dialog id="configDialog" class="app-dialog"><form id="configForm" method="dialog"><div class="dialog-heading"><div><p class="eyebrow">Customizable for your feedlot</p><h2>Edit configuration</h2></div><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><div class="form-scroll config-fields"><label>Sections and pens <small>One section per line: East: A, 22, 21</small><textarea id="configPens" rows="5"></textarea></label><label>Health issues <small>One category per line, then flags separated by commas: Respiratory: Snotty nose, Head down</small><textarea id="configIssues" rows="6"></textarea></label><label>How it looks flags <small>One per line</small><textarea id="configAppearance" rows="4"></textarea></label><label>Animal colors <small>One per line</small><textarea id="configColors" rows="3"></textarea></label><label>Treat tag colors <small>One per line</small><textarea id="configTreatColors" rows="3"></textarea></label><label>Base products <small>One per line</small><textarea id="configBaseProducts" rows="4"></textarea></label><label>Secondary products <small>One per line</small><textarea id="configSecondaryProducts" rows="4"></textarea></label><label>Compatible secondary products <small>One per line: LA200: Tylan 200, Banamine</small><textarea id="configCompatibility" rows="4"></textarea></label><label>Secondary products selected by default <small>One base per line, optional and toggled per animal</small><textarea id="configDefaultSecondary" rows="4"></textarea></label><label>Required secondary products <small>One base per line, always included</small><textarea id="configRequiredSecondary" rows="3"></textarea></label><label>Pull destinations <small>One per line</small><textarea id="configDestinations" rows="3"></textarea></label></div><div class="dialog-actions"><button class="secondary-button" value="cancel">Cancel</button><button class="primary-button" id="saveConfigButton" value="save">Save configuration</button></div></form></dialog>
+  <dialog id="messageDialog" class="app-dialog compact-dialog"><form method="dialog"><div class="dialog-heading"><h2 id="messageTitle">Cowboy</h2><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div><div id="messageContent" class="message-content"></div><div class="dialog-actions"><button class="primary-button" value="cancel">Done</button></div></form></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
