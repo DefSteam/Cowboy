@@ -1,6 +1,5 @@
 package com.cowboy.app;
 
-import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -17,6 +16,11 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import androidx.activity.ComponentActivity;
+import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.FileProvider;
 
 import org.json.JSONArray;
@@ -30,15 +34,15 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /** Thin Android shell for the shared web app in /web. */
-public final class MainActivity extends Activity {
-    private static final int PICK_FILE = 610;
-    private static final int INSTALL_PERMISSION = 611;
-    private static final int SAVE_JSON_FILE = 612;
+public final class MainActivity extends ComponentActivity {
     private static final String UPDATE_PREFS = "cowboy_update";
     private static final String RELEASES_API = "https://api.github.com/repos/DefSteam/Cowboy/releases/latest";
 
     private WebView webView;
     private ValueCallback<Uri[]> fileChooserCallback;
+    private ActivityResultLauncher<Intent> filePickerLauncher;
+    private ActivityResultLauncher<Intent> saveJsonLauncher;
+    private ActivityResultLauncher<Intent> installPermissionLauncher;
     private File pendingUpdateApk;
     private String pendingUpdateVersion;
     private volatile String availableUpdateUrl;
@@ -50,6 +54,24 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        filePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), this::onFilePickerResult);
+        saveJsonLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), this::onSaveJsonResult);
+        installPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                            && getPackageManager().canRequestPackageInstalls()) installPendingUpdate();
+                });
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() {
+                if (webView == null) { finish(); return; }
+                webView.evaluateJavascript("(()=>{const d=[...document.querySelectorAll('dialog[open]')].pop();"
+                        + "if(d){d.close();return}const p=document.querySelector('.page.active');"
+                        + "if(p&&p.id!=='todayPage'){document.querySelector('[data-page=\"todayPage\"]').click();return}"
+                        + "window.CowboyNative.exitRequested()})()", null);
+            }
+        });
         webView = new WebView(this);
         webView.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -78,7 +100,7 @@ public final class MainActivity extends Activity {
                 Intent intent;
                 try {
                     intent = params.createIntent();
-                    startActivityForResult(intent, PICK_FILE);
+                    filePickerLauncher.launch(intent);
                 } catch (ActivityNotFoundException error) {
                     fileChooserCallback = null;
                     callback.onReceiveValue(null);
@@ -93,43 +115,27 @@ public final class MainActivity extends Activity {
         webView.loadUrl("file:///android_asset/index.html");
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PICK_FILE && fileChooserCallback != null) {
-            Uri[] result = resultCode == RESULT_OK && data != null && data.getData() != null
-                    ? new Uri[]{data.getData()} : null;
-            fileChooserCallback.onReceiveValue(result);
-            fileChooserCallback = null;
-        } else if (requestCode == SAVE_JSON_FILE) {
-            String contents = pendingExportContents;
-            pendingExportContents = null;
-            if (resultCode == RESULT_OK && data != null && data.getData() != null && contents != null) {
-                try (OutputStream output = getContentResolver().openOutputStream(data.getData())) {
-                    if (output == null) throw new java.io.IOException("Could not open the selected file.");
-                    output.write(contents.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    toast("Cowboy data exported");
-                } catch (java.io.IOException error) {
-                    toast("Could not save the Cowboy data file");
-                }
-            }
-        } else if (requestCode == INSTALL_PERMISSION
-                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                && getPackageManager().canRequestPackageInstalls()) {
-            installPendingUpdate();
-        }
+    private void onFilePickerResult(ActivityResult activityResult) {
+        if (fileChooserCallback == null) return;
+        Intent data = activityResult.getData();
+        Uri[] result = activityResult.getResultCode() == RESULT_OK && data != null && data.getData() != null
+                ? new Uri[]{data.getData()} : null;
+        fileChooserCallback.onReceiveValue(result);
+        fileChooserCallback = null;
     }
 
-    @Override
-    public void onBackPressed() {
-        if (webView == null) {
-            super.onBackPressed();
-            return;
+    private void onSaveJsonResult(ActivityResult activityResult) {
+        String contents = pendingExportContents;
+        pendingExportContents = null;
+        Intent data = activityResult.getData();
+        if (activityResult.getResultCode() != RESULT_OK || data == null || data.getData() == null || contents == null) return;
+        try (OutputStream output = getContentResolver().openOutputStream(data.getData())) {
+            if (output == null) throw new java.io.IOException("Could not open the selected file.");
+            output.write(contents.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            toast("Cowboy data exported");
+        } catch (java.io.IOException error) {
+            toast("Could not save the Cowboy data file");
         }
-        webView.evaluateJavascript("(()=>{const d=[...document.querySelectorAll('dialog[open]')].pop();"
-                + "if(d){d.close();return}const p=document.querySelector('.page.active');"
-                + "if(p&&p.id!=='todayPage'){document.querySelector('[data-page=\\\"todayPage\\\"]').click();return}"
-                + "window.CowboyNative.exitRequested()})()", null);
     }
 
     private final class CowboyBridge {
@@ -156,7 +162,7 @@ public final class MainActivity extends Activity {
         intent.setType("application/json");
         intent.putExtra(Intent.EXTRA_TITLE, filename);
         try {
-            startActivityForResult(intent, SAVE_JSON_FILE);
+            saveJsonLauncher.launch(intent);
         } catch (ActivityNotFoundException error) {
             pendingExportContents = null;
             toast("No file picker is available on this device");
@@ -281,7 +287,7 @@ public final class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
             Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                     Uri.parse("package:" + getPackageName()));
-            startActivityForResult(settings, INSTALL_PERMISSION);
+            installPermissionLauncher.launch(settings);
             return;
         }
         Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", pendingUpdateApk);

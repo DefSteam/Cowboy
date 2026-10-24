@@ -21,8 +21,8 @@ android {
         applicationId = "com.cowboy.app"
         minSdk = 23
         targetSdk = 35
-        versionCode = 28
-        versionName = "0.1.28"
+        versionCode = 29
+        versionName = "0.1.29"
     }
 
 }
@@ -36,5 +36,6 @@ androidComponents {
 }
 
 dependencies {
+    implementation("androidx.activity:activity:1.8.0")
     implementation("com.google.android.material:material:1.14.0")
 }

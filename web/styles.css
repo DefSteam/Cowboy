@@ -205,4 +205,4 @@
 
 .config-new-group{display:flex;justify-content:flex-start}.config-new-group .secondary-button{min-height:40px}
 
-.config-sections-manager{border-color:#d8e3d7;background:#f8faf7}.config-section-panel{margin-left:12px;border-left:3px solid #d9e5d8}.config-section-panel .config-panel-heading h3{color:#34533b}.config-sections-manager .config-new-group{margin-top:9px}
+.config-sections-manager{border-color:#d8e3d7;background:#f8faf7}.config-section-panel{margin-left:0;border-left:3px solid #d9e5d8}.config-section-panel .config-panel-heading h3{color:#34533b}.config-sections-manager .config-new-group{margin-top:9px}
