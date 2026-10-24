@@ -80,7 +80,7 @@ public final class MainActivity extends Activity {
         });
         setContentView(webView);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
-        webView.loadUrl("file:///android_asset/web/index.html");
+        webView.loadUrl("file:///android_asset/index.html");
     }
 
     @Override
