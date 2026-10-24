@@ -4,7 +4,7 @@ This is a static Progressive Web App (PWA). It can be hosted from any HTTPS stat
 
 ## Run locally
 
-From the repository root, run `python3 -m http.server 8080 --directory web` and open `http://localhost:8080`. Service workers require HTTPS in production (localhost is allowed for development).
+From the repository root, run `./web/serve.sh` and open `http://localhost:8080`. Pass a port to use another one, for example `./web/serve.sh 9000`. Service workers require HTTPS in production (localhost is allowed for development).
 
 ## Install
 
