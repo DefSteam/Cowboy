@@ -193,3 +193,14 @@
 .config-delete-action{right:-4px}
 .config-edit-action{left:-4px}
 @media(max-width:380px){.config-swipe-action{width:88px}.config-delete-action{right:-4px}.config-edit-action{left:-4px}}
+/* Deeper overlap hides the entire rounded corner at full reveal. */
+.config-swipe-action{width:130px}
+.config-delete-action{right:-22px}
+.config-edit-action{left:-22px}
+@media(max-width:380px){.config-swipe-action{width:122px}.config-delete-action{right:-22px}.config-edit-action{left:-22px}}
+
+.config-collapse-toggle{flex:none;width:26px;height:30px;display:grid;place-items:center;padding:0;border:0;border-radius:7px;background:transparent;color:#758174;font-size:16px;line-height:1}.config-collapse-toggle:hover{background:#edf2eb;color:#355b43}.config-row-wrap[data-can-drag="false"] .config-drag-handle{opacity:.28;pointer-events:none}.config-section-content[hidden]{display:none!important}.config-group-card.is-collapsed{padding-bottom:7px}
+
+.config-drag-handle{cursor:grab;touch-action:none}.config-list-row{touch-action:pan-y}.config-row-ghost{transition:transform .14s cubic-bezier(.2,.75,.25,1),height .14s ease}.config-row-wrap.drag-active{transition:none}.config-editor{scroll-behavior:auto;overscroll-behavior:contain}
+
+.config-new-group{display:flex;justify-content:flex-start}.config-new-group .secondary-button{min-height:40px}
