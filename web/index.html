@@ -44,7 +44,7 @@
     <button class="nav-item" data-page="settingsPage"><span>⚙</span>Settings</button>
   </nav>
   <dialog id="formDialog" class="app-dialog"><form id="animalForm" method="dialog"><div class="dialog-heading"><div><p class="eyebrow">New daily record</p><h2>Enter sick animal</h2></div><button class="icon-button close-button" value="cancel" aria-label="Close">×</button></div>
-    <div class="form-scroll"><label class="field-label">Pen <button type="button" class="inline-pick" id="choosePen">Choose pen</button></label><input id="penInput" required placeholder="Select a pen" readonly>
+    <div class="form-scroll"><label class="field-label" for="penInput">Pen</label><input id="penInput" required placeholder="Tap to select a pen" readonly aria-haspopup="dialog">
       <label class="field-label" for="animalTag">Animal tag <span class="optional">optional</span></label><input id="animalTag" inputmode="numeric" autocomplete="off" placeholder="Tag number">
       <label class="field-label">What's wrong?</label><div class="chip-area" id="issueChips"></div>
       <label class="field-label">How it looks</label><div class="chip-area" id="appearanceChips"></div>
