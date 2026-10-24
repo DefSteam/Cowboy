@@ -124,19 +124,19 @@
 .config-toggle:hover{border-color:#69866c}
 .config-row-list{display:grid;gap:6px;margin:0 0 11px}
 .config-row-wrap{position:relative;min-width:0;overflow:hidden;border-radius:11px;background:#e9eee8;isolation:isolate}
-.config-swipe-action{position:absolute;inset-block:0;width:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#fff;font-size:10px;font-weight:750;letter-spacing:.15px;cursor:pointer;user-select:none}
+.config-swipe-action{position:absolute;z-index:2;inset-block:0;width:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#fff;font-size:10px;font-weight:750;letter-spacing:.15px;cursor:pointer;user-select:none}
 .config-swipe-action svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .config-swipe-action span{color:#fff}
 .config-delete-action{right:0;background:#c74740}
 .config-edit-action{left:0;background:#3678c8}
-.config-list-row{position:relative;z-index:1;min-height:47px;display:flex;align-items:center;gap:10px;padding:5px 10px 5px 5px;border:1px solid #e3e9e1;border-radius:11px;background:#fff;color:#38463a;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;touch-action:pan-y;user-select:none}
+.config-list-row{position:relative;z-index:3;min-height:47px;display:flex;align-items:center;gap:10px;padding:5px 10px 5px 5px;border:1px solid #e3e9e1;border-radius:11px;background:#fff;color:#38463a;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;touch-action:none;user-select:none}
 .config-list-row.drag-active{z-index:3;transition:none;box-shadow:0 8px 22px #27392b30;border-color:#8fa790;opacity:.96}
 .config-list-row.drop-target{border-top:3px solid #5a7c60}
 .config-drag-handle{flex:none;width:32px;height:34px;display:grid;place-items:center;padding:0;border:0;border-radius:8px;background:transparent;color:#8a9489;touch-action:none;cursor:grab}
 .config-drag-handle:active{color:#3d6846;cursor:grabbing}
+.config-row-wrap.drag-active .config-list-row{border-color:#729477;box-shadow:0 5px 16px #27392b24}
 .config-drag-handle svg{width:19px;height:23px;fill:currentColor}
 .config-row-label{min-width:0;flex:1;overflow-wrap:anywhere;font-size:12px;font-weight:650;line-height:1.35}
-.config-row-edit-hint{flex:none;color:#9aa196;font-size:9px;font-weight:550}
 .config-row-wrap.open-delete .config-list-row{transform:translateX(-88px)!important}
 .config-row-wrap.open-edit .config-list-row{transform:translateX(88px)!important}
 .config-row-wrap.preview-delete .config-list-row{border-color:#d98680}
@@ -152,7 +152,7 @@
 .config-tab.active{border-color:#dce7da;background:#eaf1e8;color:#355b3c;box-shadow:inset 0 -2px #55795c}
 .config-tab-panel{display:grid;gap:13px}
 .config-tab-panel[hidden]{display:none}
-@media(max-width:380px){.config-row-edit-hint{font-size:8px}.config-swipe-action{width:80px}.config-row-wrap.open-delete .config-list-row{transform:translateX(-80px)!important}.config-row-wrap.open-edit .config-list-row{transform:translateX(80px)!important}}
+@media(max-width:380px){.config-swipe-action{width:80px}.config-row-wrap.open-delete .config-list-row{transform:translateX(-80px)!important}.config-row-wrap.open-edit .config-list-row{transform:translateX(80px)!important}}
 .device-status-card{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px 12px;margin:-9px 0 14px;padding:10px 12px;border:1px solid #e1e8df;border-radius:12px;background:#fff;color:#667267;font-size:10px;line-height:1.35}
 .connection-status{display:inline-flex;align-items:center;gap:7px;color:#405943;font-size:11px;font-weight:750;white-space:nowrap}
 .status-dot{width:8px;height:8px;border-radius:50%;background:#4e8a57;box-shadow:0 0 0 3px #e7f1e7}
@@ -174,4 +174,9 @@
 .toast.has-action{display:flex;align-items:center;gap:15px;pointer-events:auto;padding:7px 9px 7px 16px;max-width:calc(100vw - 28px)}
 .toast-action{min-height:34px;padding:6px 11px;border:0;border-radius:20px;background:#dcebdc;color:#284633;font-size:11px;font-weight:800}
 .toast-action:hover{background:#c9dfc9}
+.data-tool-card{align-items:stretch;flex-direction:column;gap:11px}
+.data-tool-actions{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.data-tool-actions>button{flex:1 1 135px;min-height:42px;padding:9px 12px;text-align:center}
+.message-content{white-space:pre-line}
 @media(max-width:390px){.device-status-card{grid-template-columns:1fr;gap:4px}.workflow-step{font-size:9px}.workflow-count{font-size:18px}.config-heading-actions .text-button{font-size:11px}}
+:is(button.pen-option,span.pen-option){display:flex;align-items:center;justify-content:center;text-align:center;width:100%;min-width:0;padding:8px;line-height:1.25;overflow-wrap:anywhere}.config-preview-pen-grid{grid-template-columns:repeat(auto-fit,minmax(62px,1fr));margin:10px 0 2px}.config-preview-pen-grid .pen-option{cursor:default}
