@@ -25,13 +25,14 @@ android {
         versionName = "0.1.9"
     }
 
-    sourceSets.getByName("main").assets.srcDir(
-        layout.buildDirectory.dir("generated/cowboyWebAssets")
-    )
 }
 
-tasks.named("preBuild").configure {
-    dependsOn(syncCowboyWebAssets)
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets.addGeneratedSourceDirectory(syncCowboyWebAssets) {
+            it.destinationDirectory
+        }
+    }
 }
 
 dependencies {
