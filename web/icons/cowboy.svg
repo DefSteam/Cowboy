@@ -1,16 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Black steer head with a C ear tag">
-  <rect width="512" height="512" rx="116" fill="#355b43"/>
-  <path d="M205 239c-27-13-53-39-66-72 29 15 55 30 77 53l-11 19zm102 0c27-13 53-39 66-72-29 15-55 30-77 53l11 19z" fill="#f0d99d"/>
-  <path d="M184 235c20-18 44-27 72-27s52 9 72 27l43 22c23 12 17 39-7 44l-34-10c10 30 8 66-6 96-15 33-39 54-68 63-29-9-53-30-68-63-14-30-16-66-6-96l-34 10c-24-5-30-32-7-44z" fill="#20251f"/>
-  <path d="M192 268c-16-9-32-9-48-1-13 7-24 4-33-6 12 27 32 41 58 37l28-10zm128 0c16-9 32-9 48-1 13 7 24 4 33-6-12 27-32 41-58 37l-28-10z" fill="#2d342e"/>
-  <ellipse cx="217" cy="291" rx="17" ry="12" fill="#f3eee0"/><ellipse cx="295" cy="291" rx="17" ry="12" fill="#f3eee0"/>
-  <circle cx="220" cy="292" r="6" fill="#20251f"/><circle cx="292" cy="292" r="6" fill="#20251f"/>
-  <path d="M204 337c11-21 29-32 52-32s41 11 52 32c-11 22-29 35-52 35s-41-13-52-35" fill="#c8c4b8"/>
-  <ellipse cx="237" cy="334" rx="5" ry="7" fill="#20251f"/><ellipse cx="275" cy="334" rx="5" ry="7" fill="#20251f"/>
-  <path d="M237 383q19 14 38 0" fill="none" stroke="#d9d4c8" stroke-width="7" stroke-linecap="round"/>
-  <g transform="rotate(10 367 281)">
-    <path d="M347 256h37l9 10v49h-46z" fill="#fff" stroke="#172019" stroke-width="5" stroke-linejoin="round"/>
-    <circle cx="355" cy="266" r="3" fill="#355b43"/>
-    <text x="369" y="299" text-anchor="middle" font-family="Arial,sans-serif" font-size="29" font-weight="800" fill="#20251f">C</text>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Cowboy clipboard checklist and hoofprint">
+  <rect width="512" height="512" fill="#355b43"/>
+  <path d="M150 87h212c19 0 34 15 34 34v309c0 19-15 34-34 34H150c-19 0-34-15-34-34V121c0-19 15-34 34-34z" fill="#f5f2e8"/>
+  <path d="M211 71c0-21 17-38 38-38h14c21 0 38 17 38 38v32H211z" fill="#d8bd79"/>
+  <path d="M184 163l14 14 28-32" fill="none" stroke="#52775a" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M249 169h95" fill="none" stroke="#8d968a" stroke-width="12" stroke-linecap="round"/>
+  <path d="M184 232l14 14 28-32" fill="none" stroke="#52775a" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M249 238h95" fill="none" stroke="#8d968a" stroke-width="12" stroke-linecap="round"/>
+  <path d="M184 273l14 14 28-32" fill="none" stroke="#52775a" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M249 279h48" fill="none" stroke="#8d968a" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="365" cy="380" r="70" fill="#d8bd79" stroke="#f5f2e8" stroke-width="10"/>
+  <path d="M328 386c-4-17 3-38 14-42 10-4 19 7 23 20 4-13 13-24 23-20 11 4 18 25 14 42-4 20-20 33-37 33s-33-13-37-33z" fill="#355b43"/>
+  <path d="M365 365v53" fill="none" stroke="#d8bd79" stroke-width="5" stroke-linecap="round"/>
 </svg>
