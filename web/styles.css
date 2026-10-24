@@ -3,3 +3,73 @@
 @media(max-width:380px){.app-main{padding-left:13px;padding-right:13px}.animal-card{padding:13px}.card-actions{gap:6px}.card-actions button{font-size:11px;padding:9px 8px}.pen-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.settings-card{align-items:flex-start;flex-direction:column}.settings-card .secondary-button,.settings-card .text-button{align-self:flex-end}}
 
 .backup-actions{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}.backup-actions .text-button{padding:8px 6px}
+.field-label.diagnosis-heading{display:flex;align-items:center;justify-content:space-between}
+.select-chip.color-chip{font-weight:700;border-color:transparent}
+.select-chip.color-chip.active{outline:3px solid #263f2e;outline-offset:2px}
+.description-panel{margin-top:18px;padding:13px 14px;background:#edf3ed;border:1px solid #dfe8df;border-radius:14px}
+.treat-tag-section{margin:22px 0}
+.treat-tag-heading{display:flex;align-items:baseline;gap:7px;margin:0 2px 10px;font:700 16px Manrope,sans-serif;color:#343e35}
+.treat-tag-panel{padding:13px 14px;background:#edf3ed;border:1px solid #dfe8df;border-radius:14px}
+.treat-number-label{margin-top:21px}
+.treat-tag-panel .date-button{margin-top:8px}
+.month-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.month-bubble{min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1px solid #d4ddd3;border-radius:28px;background:#fff;color:#344539;font-weight:700}
+.month-bubble small{font-size:10px;color:var(--muted);font-weight:600}
+.month-bubble>span{font-size:12px;white-space:nowrap}
+.month-bubble:not(:disabled):hover{background:#e6eee7;border-color:#78937c}
+.month-bubble:disabled{opacity:.35;cursor:default}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;text-align:center}
+.calendar-weekday{padding:7px 0;color:var(--muted);font-size:10px;font-weight:700}
+.calendar-weekday.weekend{background:#dfe9dc;border-radius:8px;color:#526552}
+.calendar-blank{min-height:40px}
+.calendar-blank.weekend{background:#e9f0e6;border-radius:10px}
+.calendar-day{min-height:40px;padding:0;border:1px solid #e1e6df;border-radius:12px;background:#fff;color:#2e3c30;font-weight:600}
+.calendar-day.weekend{background:#e9f0e6;border-color:#d5e1d2}
+.calendar-day:not(:disabled):hover{background:#e6eee7;border-color:#78937c}
+.calendar-day:disabled{opacity:.32;cursor:default}
+.choice-back{flex:none;width:36px;height:36px;font-size:29px}
+.required-asterisk{color:#c5372c;font-weight:800}
+.primary-button:disabled{opacity:.48;cursor:not-allowed;box-shadow:none}
+.history-calendar{margin:2px 0 20px;padding:12px;background:#fff;border:1px solid var(--line);border-radius:17px}
+.history-calendar-heading{display:flex;align-items:center;justify-content:space-between;margin:0 2px 9px}
+.history-calendar-heading h2{margin:0;font:700 16px Manrope,sans-serif;color:#303b32}
+.history-calendar-heading .icon-button{width:36px;height:36px;font-size:27px}
+.history-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.history-weekday{padding:6px 0;color:var(--muted);font-size:10px;font-weight:700}
+.history-weekday.weekend{color:#536854}
+.history-calendar-blank{min-height:52px}
+.history-calendar-blank.weekend{background:#f0f4ef;border-radius:10px}
+.history-day{min-width:0;min-height:52px;padding:5px 1px;border:1px solid transparent;border-radius:10px;background:transparent;color:#303b32;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.history-day.weekend{background:#f0f4ef}
+.history-day:hover{border-color:#b9cbb8;background:#e7efe5}
+.history-day.selected{background:var(--green);color:#fff;border-color:var(--green)}
+.history-day-number{font-size:13px;font-weight:700;line-height:1}
+.history-pull-count{font-size:8px;line-height:1.1;white-space:nowrap;color:#68766a}
+.history-day.selected .history-pull-count{color:#e5eee6}
+.history-day-heading{display:flex;align-items:center;justify-content:space-between;margin:0 2px 12px}
+.history-day-heading h2{margin:0;font:700 17px Manrope,sans-serif;letter-spacing:-.25px}
+.card-tools{display:flex;align-items:center;gap:4px}
+.card-menu-button{width:32px;height:32px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:#4e594f;font-size:22px;line-height:1}
+.card-menu-button:hover{background:#edf1ec}
+.record-menu-items{display:grid;gap:7px;padding:12px 18px 18px}
+.record-menu-item{width:100%;min-height:44px;padding:10px 12px;text-align:left;border:1px solid var(--line);border-radius:11px;background:#fff;color:#303b32;font-size:13px;font-weight:600}
+.record-menu-item:hover{background:#edf3ed;border-color:#cbd8ca}
+.record-menu-item.destructive{color:#a43c35;border-color:#e7c8c4}
+.record-menu-item.destructive:hover{background:#fff1ef;border-color:#dba9a3}
+.treatment-summary{margin-top:13px;padding:11px 13px;background:#f3f6f2;border:1px solid #e4ebe2;border-left:3px solid var(--green);border-radius:11px}
+.treatment-summary h3{margin:0;color:#667267;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.treatment-products{margin:5px 0 8px;color:#263b2c;font-size:14px;font-weight:750;line-height:1.4}
+.treatment-fact{display:flex;justify-content:space-between;gap:12px;margin:5px 0 0;color:#606b60;font-size:12px;line-height:1.4}
+.treatment-fact strong{color:#3e4b3f;font-weight:650}
+.treatment-fact span{text-align:right}
+.record-health-flags{margin-top:12px}
+.record-diagnosis{margin:0;color:#344638;font-size:13px;font-weight:750;line-height:1.4}
+.record-flag-group{margin-top:8px}
+.record-flag-group h4{margin:0 0 5px;color:#70796e;font-size:10px;font-weight:750;letter-spacing:.55px;text-transform:uppercase}
+.record-flag-group .mini-chips{margin-top:0}
+.animal-card[role="group"]{cursor:pointer}
+.animal-card:focus-visible{outline:3px solid #78977c;outline-offset:2px}
+.card-expand-hint{display:flex;justify-content:space-between;align-items:center;margin-top:9px;color:#6d786d;font-size:10px;font-weight:700}
+.card-expand-hint span:last-child{font-size:15px;line-height:1}
+.card-expanded-details{padding-top:2px}
+.card-expanded-details .record-flag-group{margin-top:10px}
