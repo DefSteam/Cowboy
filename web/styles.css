@@ -204,3 +204,5 @@
 .config-drag-handle{cursor:grab;touch-action:none}.config-list-row{touch-action:pan-y}.config-row-ghost{transition:transform .14s cubic-bezier(.2,.75,.25,1),height .14s ease}.config-row-wrap.drag-active{transition:none}.config-editor{scroll-behavior:auto;overscroll-behavior:contain}
 
 .config-new-group{display:flex;justify-content:flex-start}.config-new-group .secondary-button{min-height:40px}
+
+.config-sections-manager{border-color:#d8e3d7;background:#f8faf7}.config-section-panel{margin-left:12px;border-left:3px solid #d9e5d8}.config-section-panel .config-panel-heading h3{color:#34533b}.config-sections-manager .config-new-group{margin-top:9px}
