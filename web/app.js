@@ -196,7 +196,7 @@ document.querySelector('#changeDiagnosis').onclick=()=>{diagnosisSelection.lengt
 document.querySelector('#changeColor').onclick=()=>{document.querySelector('#colorChips').hidden=false;document.querySelector('#colorHeading').textContent='Animal color';document.querySelector('#changeColor').hidden=true;};
 document.querySelector('#newAnimalButton').onclick=()=>{document.querySelector('#animalForm').reset();diagnosisSelection.length=issueSelection.length=appearanceSelection.length=colorSelection.length=0;document.querySelector('#penInput').value='';document.querySelector('#penInput').dataset.section='';document.querySelector('#penHeading').textContent='Pen';document.querySelector('#changePen').hidden=true;document.querySelector('#treatDateValue').textContent='';document.querySelector('#treatDateValue').dataset.value='';updateFormChoices();openPenPicker(()=>document.querySelector('#formDialog').showModal());};
 const penInput=document.querySelector('#penInput');
-const openPenPicker=onChoose=>showChoice('Select a section and pen',state.config.sections,(pen,section)=>{penInput.value=pen;penInput.dataset.section=section;document.querySelector('#penHeading').textContent=`Pen: ${pen}`;document.querySelector('#changePen').hidden=false;updateRequiredFields();onChoose?.();},true);
+const openPenPicker=onChoose=>showChoice('Choose a Pen',state.config.sections,(pen,section)=>{penInput.value=pen;penInput.dataset.section=section;document.querySelector('#penHeading').textContent=`Pen: ${pen}`;document.querySelector('#changePen').hidden=false;updateRequiredFields();onChoose?.();},true);
 document.querySelector('#changePen').onclick=()=>openPenPicker();
 document.querySelector('#treatDateButton').onclick=showTreatDatePicker;
 function editAnimalRecord(record){
