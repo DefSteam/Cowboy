@@ -2,7 +2,7 @@ plugins {
     id("com.android.application")
 }
 
-val syncCowboyWebAssets by tasks.registering(Sync::class) {
+val syncCowboyWebAssets = tasks.register<Sync>("syncCowboyWebAssets") {
     from(rootProject.file("web")) {
         exclude("README.md", "serve.sh")
     }
@@ -29,7 +29,7 @@ android {
 
 androidComponents {
     onVariants { variant ->
-        variant.sources.assets.addGeneratedSourceDirectory(syncCowboyWebAssets) {
+        variant.sources.assets!!.addGeneratedSourceDirectory(syncCowboyWebAssets) {
             it.destinationDirectory
         }
     }
