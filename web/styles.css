@@ -210,3 +210,7 @@
 .app-header{display:none}.app-main{padding-top:calc(12px + env(safe-area-inset-top))}@media(min-width:700px){.app-main{padding-top:calc(20px + env(safe-area-inset-top))}}
 
 .today-page-heading{align-items:center;margin-bottom:13px}.today-page-heading h1{font-size:27px;line-height:1.05}.today-date{margin:4px 0 0;color:var(--muted);font-size:11px;line-height:1.2}.device-status-card{display:flex;align-items:center;gap:6px;min-height:0;margin:-5px 2px 12px;padding:0;border:0;border-radius:0;background:transparent;color:#80631d;font-size:9px;line-height:1.15}.status-dot{width:6px;height:6px;flex:none;box-shadow:none}.status-dot.offline{background:#d3a62f;box-shadow:none}.status-dot.save-error{background:#bb5146;box-shadow:0 0 0 2px #f7e5e1}
+
+.bottom-nav{height:calc(58px + env(safe-area-inset-bottom));padding:4px 10px env(safe-area-inset-bottom)}.nav-item{font-size:9px;gap:2px}.nav-item span{font-size:18px}body{padding-bottom:calc(66px + env(safe-area-inset-bottom))}.toast{bottom:calc(66px + env(safe-area-inset-bottom))}.history-calendar{margin-top:0}@media(min-width:700px){.bottom-nav{height:60px}.toast{bottom:70px}}
+
+.advanced-settings-content{display:grid;align-content:start;gap:11px}.advanced-settings-content .settings-card{margin:0}.crash-report-tool[hidden]{display:none}

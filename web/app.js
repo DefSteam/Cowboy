@@ -18,7 +18,6 @@ const DEFAULT_CONFIG = {
 let state = loadState();
 let configDraft = null;
 let storageWriteFailed = false;
-let deferredInstall = null;
 let currentActionId = null;
 let editingRecordId = null;
 let toastTimer;
@@ -129,7 +128,6 @@ function render(){
 }
 function selectPage(pageId){ document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===pageId));document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('selected',b.dataset.page===pageId));if(pageId==='historyPage')render(); }
 document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>selectPage(b.dataset.page)));
-document.querySelector('#historyShortcut').onclick=()=>selectPage('historyPage');
 document.querySelector('#historySearch').addEventListener('input',render);
 document.querySelector('#historyPrevMonth').onclick=()=>shiftHistoryMonth(-1);
 document.querySelector('#historyNextMonth').onclick=()=>shiftHistoryMonth(1);
@@ -282,6 +280,7 @@ function configProductRules(){const bases=configDraft.baseProducts||[],secondari
 let configTab='pens';
 function renderConfigEditor(){const root=document.querySelector('#configEditor');if(!configDraft)return;const tabs=[['pens','Pens'],['animal','Animal'],['products','Products'],['destinations','Destinations']];root.innerHTML=`<p class="config-editor-intro">Shape the lists and treatment rules for this feedlot. Changes take effect after you save.</p><nav class="config-tabs" role="tablist" aria-label="Configuration sections">${tabs.map(([id,label])=>`<button type="button" class="config-tab ${configTab===id?'active':''}" role="tab" aria-selected="${configTab===id}" data-config-tab="${id}">${label}</button>`).join('')}</nav><section class="config-tab-panel" role="tabpanel" ${configTab!=='pens'?'hidden':''}>${configSectionsPanel()}</section><section class="config-tab-panel" role="tabpanel" ${configTab!=='animal'?'hidden':''}>${configGroupPanel('issues','Diagnoses and symptoms','Create diagnosis categories and the symptom flags shown for each one.','Add a symptom')}${configArrayPanel('appearance','Animal description flags','Choose the quick-select flags shown under “Animal Description”.')}${configArrayPanel('colors','Animal colors','Choose a color for the required animal color step.')}${configArrayPanel('treatColors','Treat tag colors','Choose the colors available for treat tags.')}</section><section class="config-tab-panel" role="tabpanel" ${configTab!=='products'?'hidden':''}>${configArrayPanel('baseProducts','Base products','Only one base product can be selected for a treatment.')}${configArrayPanel('secondaryProducts','Secondary products','These can be enabled per base product below.')}${configProductRules()}</section><section class="config-tab-panel" role="tabpanel" ${configTab!=='destinations'?'hidden':''}>${configArrayPanel('destinations','Pull destinations','Hospital pens and other destination choices.')}</section>`;}
 function addUnique(list,value){const clean=value.trim();if(clean&&!list.some(item=>item.toLowerCase()===clean.toLowerCase()))list.push(clean);}
+document.querySelector('#openAdvancedSettings').onclick=()=>document.querySelector('#advancedSettingsDialog').showModal();
 document.querySelector('#editConfigButton').onclick=()=>{configDraft=structuredClone(state.config);configDraft.compatible||={};configDraft.defaultSecondary||={};configDraft.requiredSecondary||={};configDraft.archivedSections||={};configTab='pens';renderConfigEditor();document.querySelector('#configDialog').showModal();};
 let configEditTarget=null,configCreateCategoryKey=null,configGesture=null,configLongPressTimer=null,configUndoAction=null;
 function clearConfigUndo(){configUndoAction=null;const node=document.querySelector('#toast');if(node?.classList.contains('has-action')){node.classList.remove('show','has-action');clearTimeout(toastTimer);}}
@@ -340,10 +339,9 @@ window.CowboyUpdate={
 };
 document.querySelector('#downloadUpdateButton').onclick=()=>{document.querySelector('#updateAvailableDialog').close();document.querySelector('#updateProgressPanel').hidden=false;document.querySelector('#updateProgressLabel').textContent='Starting download…';if(window.CowboyNative)window.CowboyNative.downloadUpdate();};
 document.querySelector('#installUpdateButton').onclick=()=>{document.querySelector('#updateDownloadedDialog').close();if(window.CowboyNative)window.CowboyNative.installUpdate();};
-if(window.CowboyNative){document.querySelector('#androidTools').hidden=false;document.querySelector('#androidVersion').textContent=`Installed version ${window.CowboyNative.versionName()}`;document.querySelector('#checkAndroidUpdate').onclick=()=>androidUpdateReady?window.CowboyNative.installUpdate():window.CowboyNative.checkForUpdate();document.querySelector('#shareCrashReport').onclick=()=>window.CowboyNative.shareCrashReport();try{const saved=JSON.parse(window.CowboyNative.updateState());if(saved.ready)setUpdateReady(saved.version,false);}catch{}}
+if(window.CowboyNative){document.querySelector('#androidTools').hidden=false;document.querySelector('#androidVersion').textContent=`Installed version ${window.CowboyNative.versionName()}`;document.querySelector('#checkAndroidUpdate').onclick=()=>androidUpdateReady?window.CowboyNative.installUpdate():window.CowboyNative.checkForUpdate();const crashButton=document.querySelector('#shareCrashReport');document.querySelector('.crash-report-tool').hidden=false;crashButton.onclick=()=>window.CowboyNative.shareCrashReport();try{const saved=JSON.parse(window.CowboyNative.updateState());if(saved.ready)setUpdateReady(saved.version,false);}catch{}}
 function toast(message){const node=document.querySelector('#toast');node.replaceChildren(document.createTextNode(message));node.classList.remove('has-action');node.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.classList.remove('show'),2600);}
 function toastAction(message,label,action){const node=document.querySelector('#toast'),text=document.createElement('span'),button=document.createElement('button');text.textContent=message;button.type='button';button.className='toast-action';button.textContent=label;button.onclick=()=>{node.classList.remove('show','has-action');clearTimeout(toastTimer);action();};node.replaceChildren(text,button);node.classList.add('show','has-action');clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.classList.remove('show'),6000);}
-window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstall=event;const button=document.querySelector('#installButton');button.hidden=false;button.onclick=async()=>{deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;button.hidden=true;};});
 window.addEventListener('appinstalled',()=>toast('Cowboy installed'));
 window.addEventListener('online',renderStorageStatus);window.addEventListener('offline',renderStorageStatus);
 if('serviceWorker' in navigator && location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>{});

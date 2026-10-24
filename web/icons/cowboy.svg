@@ -1,16 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Cowboy cow head icon">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Black steer head with a C ear tag">
   <rect width="512" height="512" rx="116" fill="#355b43"/>
-  <path d="M137 178c30-21 70-33 119-33s89 12 119 33l25 18c-40 19-92 28-144 28s-104-9-144-28z" fill="#e4c77f"/>
-  <path d="M193 112c18-25 39-37 63-37s45 12 63 37l19 61H174z" fill="#d6b46d"/>
-  <path d="M130 178c34-17 78-26 126-26s92 9 126 26l19 20c-38 20-89 31-145 31s-107-11-145-31z" fill="#f0d99d"/>
-  <path d="M183 214c22-13 46-19 73-19s51 6 73 19l42 26c18 11 11 35-9 38l-34-10c9 28 7 66-7 94-15 31-39 51-65 58-26-7-50-27-65-58-14-28-16-66-7-94l-34 10c-20-3-27-27-9-38z" fill="#f5f2e8"/>
-  <path d="M192 271c14-9 30-9 44 0m40 0c14-9 30-9 44 0" fill="none" stroke="#355b43" stroke-width="11" stroke-linecap="round"/>
-  <path d="M211 319c10-18 26-27 45-27s35 9 45 27c-10 19-26 31-45 31s-35-12-45-31" fill="#bd7860"/>
-  <ellipse cx="240" cy="315" rx="4" ry="5" fill="#352f29"/><ellipse cx="272" cy="315" rx="4" ry="5" fill="#352f29"/>
-  <path d="M235 366q21 17 42 0" fill="none" stroke="#352f29" stroke-width="7" stroke-linecap="round"/>
-  <g transform="rotate(10 361 286)">
-    <path d="M344 264h34l8 10v43h-42z" fill="#fff" stroke="#31533d" stroke-width="5" stroke-linejoin="round"/>
-    <circle cx="351" cy="273" r="3" fill="#355b43"/>
-    <text x="363" y="304" text-anchor="middle" font-family="Arial,sans-serif" font-size="27" font-weight="800" fill="#20251f">C</text>
+  <path d="M205 239c-27-13-53-39-66-72 29 15 55 30 77 53l-11 19zm102 0c27-13 53-39 66-72-29 15-55 30-77 53l11 19z" fill="#f0d99d"/>
+  <path d="M184 235c20-18 44-27 72-27s52 9 72 27l43 22c23 12 17 39-7 44l-34-10c10 30 8 66-6 96-15 33-39 54-68 63-29-9-53-30-68-63-14-30-16-66-6-96l-34 10c-24-5-30-32-7-44z" fill="#20251f"/>
+  <path d="M192 268c-16-9-32-9-48-1-13 7-24 4-33-6 12 27 32 41 58 37l28-10zm128 0c16-9 32-9 48-1 13 7 24 4 33-6-12 27-32 41-58 37l-28-10z" fill="#2d342e"/>
+  <ellipse cx="217" cy="291" rx="17" ry="12" fill="#f3eee0"/><ellipse cx="295" cy="291" rx="17" ry="12" fill="#f3eee0"/>
+  <circle cx="220" cy="292" r="6" fill="#20251f"/><circle cx="292" cy="292" r="6" fill="#20251f"/>
+  <path d="M204 337c11-21 29-32 52-32s41 11 52 32c-11 22-29 35-52 35s-41-13-52-35" fill="#c8c4b8"/>
+  <ellipse cx="237" cy="334" rx="5" ry="7" fill="#20251f"/><ellipse cx="275" cy="334" rx="5" ry="7" fill="#20251f"/>
+  <path d="M237 383q19 14 38 0" fill="none" stroke="#d9d4c8" stroke-width="7" stroke-linecap="round"/>
+  <g transform="rotate(10 367 281)">
+    <path d="M347 256h37l9 10v49h-46z" fill="#fff" stroke="#172019" stroke-width="5" stroke-linejoin="round"/>
+    <circle cx="355" cy="266" r="3" fill="#355b43"/>
+    <text x="369" y="299" text-anchor="middle" font-family="Arial,sans-serif" font-size="29" font-weight="800" fill="#20251f">C</text>
   </g>
 </svg>
