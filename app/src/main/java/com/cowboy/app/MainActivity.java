@@ -25,6 +25,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -32,11 +33,13 @@ import java.net.URL;
 public final class MainActivity extends Activity {
     private static final int PICK_FILE = 610;
     private static final int INSTALL_PERMISSION = 611;
+    private static final int SAVE_JSON_FILE = 612;
     private static final String RELEASES_API = "https://api.github.com/repos/DefSteam/Cowboy/releases/latest";
 
     private WebView webView;
     private ValueCallback<Uri[]> fileChooserCallback;
     private File pendingUpdateApk;
+    private String pendingExportContents;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +94,18 @@ public final class MainActivity extends Activity {
                     ? new Uri[]{data.getData()} : null;
             fileChooserCallback.onReceiveValue(result);
             fileChooserCallback = null;
+        } else if (requestCode == SAVE_JSON_FILE) {
+            String contents = pendingExportContents;
+            pendingExportContents = null;
+            if (resultCode == RESULT_OK && data != null && data.getData() != null && contents != null) {
+                try (OutputStream output = getContentResolver().openOutputStream(data.getData())) {
+                    if (output == null) throw new java.io.IOException("Could not open the selected file.");
+                    output.write(contents.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    toast("Cowboy data exported");
+                } catch (java.io.IOException error) {
+                    toast("Could not save the Cowboy data file");
+                }
+            }
         }
     }
 
@@ -121,7 +136,24 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void shareCrashReport() {
             runOnUiThread(MainActivity.this::shareLatestCrashReport);
         }
+        @JavascriptInterface public void exportJson(String filename, String contents) {
+            runOnUiThread(() -> saveJsonFile(filename, contents));
+        }
         @JavascriptInterface public void exitRequested() { runOnUiThread(MainActivity.this::finish); }
+    }
+
+    private void saveJsonFile(String filename, String contents) {
+        pendingExportContents = contents;
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        intent.putExtra(Intent.EXTRA_TITLE, filename);
+        try {
+            startActivityForResult(intent, SAVE_JSON_FILE);
+        } catch (ActivityNotFoundException error) {
+            pendingExportContents = null;
+            toast("No file picker is available on this device");
+        }
     }
 
     private void checkForUpdate() {

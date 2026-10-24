@@ -19,4 +19,13 @@ In the repository settings, enable GitHub Pages with **GitHub Actions** as the s
 
 The app shell is cached for offline startup. Records and configuration are kept in browser local storage on each device. This initial version does not synchronize between devices; use Settings → Export backup to save a JSON copy. Add a shared backend before relying on multiple devices seeing the same live records.
 
+### Import and export formats
+
+Settings provides two versioned JSON formats:
+
+- **Cowboy backup** (`format: "cowboy-backup"`) contains both configuration and animal records. Importing replaces the device's current configuration and records.
+- **Cowboy animal data** (`format: "cowboy-animal-data"`) contains records only. Importing merges records, skips IDs already on the device, and does not change configuration.
+
+Both formats include `schemaVersion` (currently `1`) and `exportedAt`. Keep the `format` and `schemaVersion` fields when handling these files. The importer accepts legacy full backups without a format/version as schema version `0`; it also accepts legacy animal exports that are plain arrays of records. Newer unsupported schema versions are rejected with an update message rather than partially imported. When the format changes, increment `DATA_SCHEMA_VERSION` in `app.js` and add explicit migration handling for older versions before changing their meaning.
+
 The Android project at the repository root is a small WebView shell around these assets. It provides the Android release updater and debug crash-report sharing without duplicating the feedlot interface or data model.
