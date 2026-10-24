@@ -238,6 +238,23 @@
 .update-progress-track{height:7px;background:#e7ece6}
 .android-tools-actions{justify-content:flex-start}
 .android-tools-actions #checkAndroidUpdate{min-width:160px;min-height:44px}
+.android-tools-card .update-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.android-tools-card .update-heading strong{font:750 15px Manrope,sans-serif;color:#2f4333}
+.android-tools-card .update-heading p{flex:none;margin:0;padding:6px 9px;border:1px solid #e2e8df;border-radius:9px;background:#fff;color:#667164;font-size:10px;font-weight:650;white-space:nowrap}
+
+/* Shared button sizing and right aligned panel actions. */
+.primary-button,.secondary-button,.danger-button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 15px;border-radius:12px;font-size:13px;font-weight:700;line-height:1.2}
+.data-tool-actions{justify-content:flex-end}
+.data-tool-actions>button{flex:0 1 auto;min-width:124px;min-height:42px;padding:0 13px;border-radius:12px;white-space:normal}
+.data-tool-actions>.text-button{background:#eef1ec;color:#334538}
+.data-tool-actions>.text-button:hover{background:#e2e8e0;text-decoration:none}
+.android-tools-actions{justify-content:flex-end}
+.android-tools-actions #checkAndroidUpdate{min-height:42px}
+.card-actions{justify-content:flex-end}
+.card-actions button{flex:0 1 auto;min-height:40px}
+.dialog-actions{justify-content:flex-end}
+.dialog-actions button{min-height:42px}
+.backup-actions{justify-content:flex-end}
 
 /* Floating destinations stay reachable and tuck away while content scrolls down. */
 .bottom-nav{height:calc(84px + env(safe-area-inset-bottom));align-items:flex-end;justify-content:center;gap:0;overflow:visible;padding:0 0 calc(14px + env(safe-area-inset-bottom));background:transparent;border:0;box-shadow:none;pointer-events:none;transition:transform .22s ease,opacity .18s ease}
@@ -245,11 +262,11 @@
 .nav-item{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));width:76px;max-width:none;flex:none;min-height:50px;gap:4px;padding:7px 9px;border:1px solid #e0e5de;border-radius:18px;background:rgba(255,255,255,.96);color:#747d73;font-size:10px;font-weight:650;box-shadow:0 4px 14px #263a2b20;pointer-events:auto;backdrop-filter:blur(12px);transition:background-color .16s,color .16s,box-shadow .16s,transform .16s}
 .nav-item span{font-size:19px;line-height:1}
 .nav-item.selected{background:#edf2ec;border-color:#d8e3d7;color:var(--green)}
-.nav-item[data-page="historyPage"]{left:calc(50% - 96px);transform:translateX(-50%)}
-.nav-item[data-page="settingsPage"]{left:calc(50% + 96px);transform:translateX(-50%)}
-.nav-item[data-page="todayPage"]{left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:1;width:108px;max-width:none;height:56px;min-height:56px;flex:none;flex-direction:row;justify-content:center;gap:8px;padding:8px 15px;border:1px solid #284633;border-radius:30px;background:var(--green);color:#fff;font-size:13px;font-weight:750;box-shadow:0 6px 18px #243d2a38;pointer-events:auto}
+.nav-item[data-page="historyPage"]{left:calc(50% - 80px);transform:translateX(-50%);z-index:1}
+.nav-item[data-page="settingsPage"]{left:calc(50% + 80px);transform:translateX(-50%);z-index:1}
+.nav-item[data-page="todayPage"]{left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:2;width:108px;max-width:none;height:56px;min-height:56px;flex:none;flex-direction:row;justify-content:center;gap:8px;padding:8px 15px;border:1px solid #284633;border-radius:18px;background:var(--green);color:#fff;font-size:13px;font-weight:750;box-shadow:0 6px 18px #243d2a38;pointer-events:auto}
 .nav-item[data-page="todayPage"] span{font-size:22px}
 .nav-item[data-page="todayPage"].selected{background:var(--green);color:#fff;box-shadow:0 7px 20px #243d2a48}
 .toast{bottom:calc(108px + env(safe-area-inset-bottom))}
-@media(min-width:700px){.bottom-nav{height:94px}.nav-item{bottom:calc(18px + env(safe-area-inset-bottom))}.nav-item[data-page="todayPage"]{bottom:calc(16px + env(safe-area-inset-bottom));width:116px;height:60px;min-height:60px}.nav-item[data-page="historyPage"]{left:calc(50% - 104px)}.nav-item[data-page="settingsPage"]{left:calc(50% + 104px)}.toast{bottom:118px}}
+@media(min-width:700px){.bottom-nav{height:94px}.nav-item{bottom:calc(18px + env(safe-area-inset-bottom))}.nav-item[data-page="todayPage"]{bottom:calc(16px + env(safe-area-inset-bottom));width:116px;height:60px;min-height:60px}.nav-item[data-page="historyPage"]{left:calc(50% - 86px)}.nav-item[data-page="settingsPage"]{left:calc(50% + 86px)}.toast{bottom:118px}}
 @media(prefers-reduced-motion:reduce){.bottom-nav,.nav-item{transition:none}}
