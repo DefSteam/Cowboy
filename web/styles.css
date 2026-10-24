@@ -225,3 +225,15 @@
 .nav-item[data-page="todayPage"].selected{background:var(--green);color:#fff;box-shadow:0 3px 9px #294a3430}
 .nav-item[data-page="historyPage"].selected,.nav-item[data-page="settingsPage"].selected{background:#edf1ec;color:var(--green)}
 @media(min-width:700px){.bottom-nav{height:64px}.nav-item[data-page="todayPage"]{max-width:164px}}
+
+.android-tools-card{gap:13px;padding:17px;border-color:#dce6dc;background:linear-gradient(145deg,#fff 35%,#f4f8f3)}
+.android-tools-card .update-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.android-tools-card .update-heading strong{display:block;font:750 15px Manrope,sans-serif;color:#2f4333}
+.android-tools-card .update-heading p{margin:4px 0 0;color:var(--muted);font-size:11px}
+.update-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;background:#e8f0e8;color:var(--green);font-size:22px;font-weight:700}
+.update-status{padding:10px 12px;border-radius:11px;background:#f0f3ef;color:#536052;font-size:12px;line-height:1.45}
+.update-progress-panel{padding:12px;background:#fff;border:1px solid #e1e8df;border-radius:12px}
+.update-progress-labels{font-size:11px}
+.update-progress-track{height:7px;background:#e7ece6}
+.android-tools-actions{justify-content:flex-start}
+.android-tools-actions #checkAndroidUpdate{min-width:160px;min-height:44px}
