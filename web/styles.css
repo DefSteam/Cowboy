@@ -283,6 +283,7 @@ button:disabled{transition:opacity .14s ease}
 .bottom-nav .nav-item span,.bottom-nav .nav-item[data-page="todayPage"] span{width:46px;height:27px;display:grid;place-items:center;border-radius:18px;background:transparent;color:inherit;font-size:20px;line-height:1}
 .bottom-nav .nav-item.selected,.bottom-nav .nav-item[data-page="todayPage"].selected,.bottom-nav .nav-item[data-page="historyPage"].selected,.bottom-nav .nav-item[data-page="settingsPage"].selected{width:100%;height:auto;min-height:54px;flex:none;border:0;background:transparent;color:var(--green);font-weight:750;box-shadow:none;scale:1}
 .bottom-nav .nav-item.selected span{background:var(--green);color:#fff}
+.bottom-nav .nav-item[data-page="historyPage"] span{font-size:24px}
 .bottom-nav .nav-item:focus-visible{outline:2px solid #78947c;outline-offset:-2px}
 .android-tools-card,.runtime-tools-card{margin-bottom:10px}
 .android-update-actions{display:flex;justify-content:flex-end;margin:2px 0 8px}
