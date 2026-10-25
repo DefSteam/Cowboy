@@ -223,6 +223,9 @@ public final class MainActivity extends ComponentActivity {
         @JavascriptInterface public void installUpdate() {
             runOnUiThread(MainActivity.this::installPendingUpdate);
         }
+        @JavascriptInterface public void restartApp() {
+            runOnUiThread(MainActivity.this::recreate);
+        }
         @JavascriptInterface public void shareCrashReport() {
             runOnUiThread(MainActivity.this::shareLatestCrashReport);
         }
