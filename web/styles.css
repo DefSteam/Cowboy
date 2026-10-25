@@ -244,6 +244,7 @@
 .version-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .version-summary>span{display:flex;justify-content:space-between;gap:8px;padding:9px 11px;border-radius:10px;background:#f0f3ef;color:#667164;font-size:12px}
 .version-summary strong{color:#2f4333;font-weight:750}
+.version-summary .update-check{flex:none;color:#2f8a4a;font-size:18px;font-weight:800;line-height:1}
 .runtime-update-status{background:#f5f6f3}
 
 /* Shared button sizing and right aligned panel actions. */
@@ -288,5 +289,8 @@ button:disabled{transition:opacity .14s ease}
 .android-tools-card,.runtime-tools-card{margin-bottom:10px}
 .android-update-actions{display:flex;justify-content:flex-end;margin:2px 0 8px}
 .android-update-actions button{min-width:170px}
+.update-action-row{display:flex;justify-content:flex-end;gap:8px}
+.update-action-row .android-update-actions{flex:1 1 0;margin:0}
+.update-action-row .android-update-actions button{width:100%;min-width:0;padding-inline:9px;white-space:normal}
 .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
 @media(min-width:700px){.bottom-nav{height:66px}.toast{bottom:78px}}
