@@ -3,6 +3,8 @@ package com.cowboy.app;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,6 +14,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
@@ -22,6 +25,7 @@ import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.FileProvider;
+import androidx.webkit.WebViewAssetLoader;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -32,16 +36,22 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Arrays;
 
 /** Thin Android shell for the shared web app in /web. */
 public final class MainActivity extends ComponentActivity {
     private static final String UPDATE_PREFS = "cowboy_update";
-    private static final String RELEASES_API = "https://api.github.com/repos/DefSteam/Cowboy/releases/latest";
+    private static final String RELEASES_API = "https://api.github.com/repos/DefSteam/Cowboy/releases?per_page=100";
+    private static final String APP_ASSET_ORIGIN = "https://appassets.androidplatform.net";
 
     private WebView webView;
+    private WebViewAssetLoader assetLoader;
+    private RuntimeUpdater runtimeUpdater;
+    private String loadedRuntimeVersion;
     private ValueCallback<Uri[]> fileChooserCallback;
     private ActivityResultLauncher<Intent> filePickerLauncher;
     private ActivityResultLauncher<Intent> saveJsonLauncher;
+    private ActivityResultLauncher<Intent> runtimeBundleLauncher;
     private ActivityResultLauncher<Intent> installPermissionLauncher;
     private File pendingUpdateApk;
     private String pendingUpdateVersion;
@@ -50,6 +60,7 @@ public final class MainActivity extends ComponentActivity {
     private volatile boolean updateCheckRunning;
     private volatile boolean updateDownloadRunning;
     private String pendingExportContents;
+    private volatile boolean manualRuntimeInstall;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,11 +69,61 @@ public final class MainActivity extends ComponentActivity {
                 new ActivityResultContracts.StartActivityForResult(), this::onFilePickerResult);
         saveJsonLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), this::onSaveJsonResult);
+        runtimeBundleLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    Intent data = result.getData();
+                    if (result.getResultCode() != RESULT_OK || data == null || data.getData() == null) return;
+                    try {
+                        InputStream input = getContentResolver().openInputStream(data.getData());
+                        if (input == null) throw new java.io.IOException("Could not open the selected runtime package.");
+                        manualRuntimeInstall = true;
+                        runtimeUpdater.installPackage(input);
+                    } catch (Exception error) {
+                        manualRuntimeInstall = false;
+                        toast(error.getMessage() == null ? "Could not open the runtime package" : error.getMessage());
+                    }
+                });
         installPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                             && getPackageManager().canRequestPackageInstalls()) installPendingUpdate();
+                    else toast("Allow Cowboy to install updates, then choose Install update again.");
                 });
+        runtimeUpdater = new RuntimeUpdater(this, new RuntimeUpdater.Listener() {
+            @Override public void onStatus(String version, String message) {
+                reportUpdateCallback("onCowboyRuntimeState", JSONObject.quote(version) + "," + JSONObject.quote(message));
+            }
+            @Override public void onProgress(String version, int percent, long received, long total) {
+                reportUpdateCallback("onCowboyRuntimeProgress", JSONObject.quote(version) + "," + percent + "," + received + "," + total);
+            }
+            @Override public void onCurrent(String version) {
+                reportUpdateCallback("onCowboyRuntimeCurrent", JSONObject.quote(version));
+            }
+            @Override public void onReady(String version) {
+                reportUpdateCallback("onCowboyRuntimeReady", JSONObject.quote(version));
+                if (manualRuntimeInstall) {
+                    manualRuntimeInstall = false;
+                    toast("Signed runtime " + version + " is ready. It will activate when Cowboy restarts.");
+                }
+            }
+            @Override public void onError(String message) {
+                reportUpdateCallback("onCowboyRuntimeError", JSONObject.quote(message));
+                if (manualRuntimeInstall) {
+                    manualRuntimeInstall = false;
+                    toast("Runtime package not installed: " + message);
+                }
+            }
+        });
+        runtimeUpdater.prepareForLaunch();
+        File activeRuntime = runtimeUpdater.activeDirectory();
+        loadedRuntimeVersion = runtimeUpdater.currentVersion();
+        WebViewAssetLoader.Builder assetLoaderBuilder = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this));
+        if (activeRuntime != null) {
+            assetLoaderBuilder.addPathHandler("/runtime/",
+                    new WebViewAssetLoader.InternalStoragePathHandler(this, activeRuntime));
+        }
+        assetLoader = assetLoaderBuilder.build();
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() {
                 if (webView == null) { finish(); return; }
@@ -77,19 +138,28 @@ public final class MainActivity extends ComponentActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
-        webView.getSettings().setAllowFileAccess(true);
+        webView.getSettings().setAllowFileAccess(false);
         webView.getSettings().setAllowContentAccess(true);
         webView.getSettings().setAllowFileAccessFromFileURLs(false);
         webView.getSettings().setAllowUniversalAccessFromFileURLs(false);
         webView.addJavascriptInterface(new CowboyBridge(), "CowboyNative");
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return assetLoader.shouldInterceptRequest(request.getUrl());
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if ("file".equals(uri.getScheme())) return false;
+                if ("https".equals(uri.getScheme())
+                        && "appassets.androidplatform.net".equals(uri.getHost())
+                        && (uri.getPath() == null || uri.getPath().startsWith("/assets/")
+                        || uri.getPath().startsWith("/runtime/"))) return false;
                 openExternal(uri);
                 return true;
             }
+
         });
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -112,7 +182,8 @@ public final class MainActivity extends ComponentActivity {
         setContentView(webView);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         restorePendingUpdate();
-        webView.loadUrl("file:///android_asset/index.html");
+        String startPath = activeRuntime != null ? "/runtime/index.html" : "/assets/index.html";
+        webView.loadUrl(APP_ASSET_ORIGIN + startPath);
     }
 
     private void onFilePickerResult(ActivityResult activityResult) {
@@ -140,7 +211,13 @@ public final class MainActivity extends ComponentActivity {
 
     private final class CowboyBridge {
         @JavascriptInterface public String versionName() { return BuildConfig.VERSION_NAME; }
-        @JavascriptInterface public void checkForUpdate() { MainActivity.this.checkForUpdate(); }
+        @JavascriptInterface public void checkForUpdates() { MainActivity.this.checkForUpdates(); }
+        @JavascriptInterface public void checkForUpdate() { MainActivity.this.checkForUpdates(); }
+        @JavascriptInterface public void installRuntimeFromStorage() {
+            runOnUiThread(MainActivity.this::openRuntimeBundlePicker);
+        }
+        @JavascriptInterface public String runtimeVersion() { return loadedRuntimeVersion; }
+        @JavascriptInterface public void runtimeReady() { runtimeUpdater.markRuntimeHealthy(); }
         @JavascriptInterface public String updateState() { return MainActivity.this.updateStateJson(); }
         @JavascriptInterface public void downloadUpdate() { MainActivity.this.downloadUpdate(); }
         @JavascriptInterface public void installUpdate() {
@@ -169,24 +246,49 @@ public final class MainActivity extends ComponentActivity {
         }
     }
 
-    private void checkForUpdate() {
+    private void checkForUpdates() {
+        runtimeUpdater.checkAndUpdate();
+        checkForAppUpdate();
+    }
+
+    private void openRuntimeBundlePicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/zip", "application/octet-stream"});
+        try {
+            runtimeBundleLauncher.launch(intent);
+        } catch (ActivityNotFoundException error) {
+            toast("No file picker is available on this device");
+        }
+    }
+
+    private void checkForAppUpdate() {
         if (updateCheckRunning || updateDownloadRunning) return;
         updateCheckRunning = true;
         availableUpdateUrl = null;
         availableUpdateVersion = null;
         reportUpdateState("checking", "Checking for the latest version…");
         new Thread(() -> {
-            HttpURLConnection connection = null;
             try {
-                connection = (HttpURLConnection) new URL(RELEASES_API).openConnection();
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(20000);
-                connection.setRequestProperty("Accept", "application/vnd.github+json");
-                connection.setRequestProperty("User-Agent", "Cowboy-Android-App");
-                JSONObject release = new JSONObject(new String(readAll(connection.getInputStream()),
-                        java.nio.charset.StandardCharsets.UTF_8));
-                String tag = release.optString("tag_name", "");
-                String latestVersion = tag.startsWith("v") ? tag.substring(1) : tag;
+                JSONObject release = null;
+                String latestVersion = null;
+                for (int page = 1; page <= 20; page++) {
+                    JSONArray releases = getAppReleasePage(page);
+                    if (releases.length() == 0) break;
+                    for (int index = 0; index < releases.length(); index++) {
+                        JSONObject candidate = releases.getJSONObject(index);
+                        if (candidate.optBoolean("draft") || candidate.optBoolean("prerelease")) continue;
+                        String candidateTag = candidate.optString("tag_name", "");
+                        if (!candidateTag.matches("v[0-9]+\\.[0-9]+\\.[0-9]+")) continue;
+                        String candidateVersion = candidateTag.substring(1);
+                        if (latestVersion == null || compareVersions(candidateVersion, latestVersion) > 0) {
+                            latestVersion = candidateVersion;
+                            release = candidate;
+                        }
+                    }
+                }
+                if (release == null || latestVersion == null) throw new IllegalStateException("No Cowboy app release was found.");
                 String assetName = "Cowboy-" + latestVersion + ".apk";
                 JSONArray assets = release.optJSONArray("assets");
                 String downloadUrl = null;
@@ -200,7 +302,7 @@ public final class MainActivity extends ComponentActivity {
                     }
                 }
                 if (downloadUrl == null) throw new IllegalStateException("Release APK not found: " + assetName);
-                if (compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) {
+                if (RuntimeUpdater.compareVersions(latestVersion, BuildConfig.VERSION_NAME) <= 0) {
                     reportUpdateCallback("onCowboyUpdateCurrent", JSONObject.quote(BuildConfig.VERSION_NAME));
                     return;
                 }
@@ -211,10 +313,27 @@ public final class MainActivity extends ComponentActivity {
                 String message = error.getMessage() == null ? "Could not check for updates" : error.getMessage();
                 reportUpdateCallback("onCowboyUpdateError", JSONObject.quote(message));
             } finally {
-                if (connection != null) connection.disconnect();
                 updateCheckRunning = false;
             }
         }, "cowboy-update-check").start();
+    }
+
+    private JSONArray getAppReleasePage(int page) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(RELEASES_API + "&page=" + page).openConnection();
+        connection.setConnectTimeout(15000);
+        connection.setReadTimeout(20000);
+        connection.setRequestProperty("Accept", "application/vnd.github+json");
+        connection.setRequestProperty("User-Agent", "Cowboy-Android-App");
+        try {
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) {
+                throw new IllegalStateException("GitHub returned HTTP " + status + " while checking app releases.");
+            }
+            return new JSONArray(new String(readAll(connection.getInputStream()),
+                    java.nio.charset.StandardCharsets.UTF_8));
+        } finally {
+            connection.disconnect();
+        }
     }
 
     private void downloadUpdate() {
@@ -248,28 +367,42 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private File downloadApk(String urlText, String version) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(urlText).openConnection();
+        URL downloadUrl = new URL(urlText);
+        if (!"https".equals(downloadUrl.getProtocol()) || !"github.com".equalsIgnoreCase(downloadUrl.getHost())) {
+            throw new IllegalStateException("The APK download link is not a trusted GitHub release link.");
+        }
+        HttpURLConnection connection = (HttpURLConnection) downloadUrl.openConnection();
         connection.setConnectTimeout(15000);
         connection.setReadTimeout(60000);
         connection.setRequestProperty("User-Agent", "Cowboy-Android-App");
+        connection.setInstanceFollowRedirects(true);
         File directory = new File(getFilesDir(), "updates");
         if (!directory.exists() && !directory.mkdirs()) throw new IllegalStateException("Could not create update folder");
         File apk = new File(directory, "Cowboy-update.apk");
         File partial = new File(directory, "Cowboy-update.apk.part");
         long total = connection.getContentLength(), received = 0;
+        if (total > 150L * 1024L * 1024L) throw new IllegalStateException("The APK download is larger than expected.");
         int lastProgress = -2;
-        try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(partial)) {
-            byte[] buffer = new byte[16384];
-            int length;
-            while ((length = input.read(buffer)) != -1) {
-                output.write(buffer, 0, length);
-                received += length;
-                int progress = total > 0 ? (int) Math.min(100, received * 100 / total) : -1;
-                if (progress != lastProgress) {
-                    lastProgress = progress;
-                    reportUpdateProgress(version, progress, received, total);
+        try {
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) throw new IllegalStateException("GitHub returned HTTP " + status + " while downloading the APK.");
+            try (InputStream input = connection.getInputStream(); FileOutputStream output = new FileOutputStream(partial)) {
+                byte[] buffer = new byte[16384];
+                int length;
+                while ((length = input.read(buffer)) != -1) {
+                    received += length;
+                    if (received > 150L * 1024L * 1024L) throw new IllegalStateException("The APK download is larger than expected.");
+                    output.write(buffer, 0, length);
+                    int progress = total > 0 ? (int) Math.min(100, received * 100 / total) : -1;
+                    if (progress != lastProgress) {
+                        lastProgress = progress;
+                        reportUpdateProgress(version, progress, received, total);
+                    }
                 }
             }
+        } catch (Exception error) {
+            partial.delete();
+            throw error;
         } finally {
             connection.disconnect();
         }
@@ -277,9 +410,52 @@ public final class MainActivity extends ComponentActivity {
             partial.delete();
             throw new IllegalStateException("Downloaded APK is incomplete");
         }
+        try {
+            validateDownloadedApk(partial, version);
+        } catch (Exception error) {
+            partial.delete();
+            throw error;
+        }
         if (apk.exists() && !apk.delete()) throw new IllegalStateException("Could not replace the previous update file");
         if (!partial.renameTo(apk)) throw new IllegalStateException("Could not finish saving the update");
         return apk;
+    }
+
+    private void validateDownloadedApk(File apk, String expectedVersion) throws Exception {
+        int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                ? PackageManager.GET_SIGNING_CERTIFICATES : PackageManager.GET_SIGNATURES;
+        PackageInfo candidate = getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(), flags);
+        if (candidate == null || !getPackageName().equals(candidate.packageName)) {
+            throw new IllegalStateException("The downloaded file is not a Cowboy Android app.");
+        }
+        if (!expectedVersion.equals(candidate.versionName)) {
+            throw new IllegalStateException("The APK version does not match the GitHub release tag.");
+        }
+        PackageInfo installed = getPackageManager().getPackageInfo(getPackageName(), flags);
+        if (candidate.versionCode <= installed.versionCode) {
+            throw new IllegalStateException("The APK version code is not newer than the installed app.");
+        }
+        String[] downloadedSigners = signingCertificates(candidate);
+        String[] installedSigners = signingCertificates(installed);
+        if (downloadedSigners.length == 0 || !Arrays.equals(downloadedSigners, installedSigners)) {
+            throw new IllegalStateException("The APK signature does not match the installed Cowboy app.");
+        }
+    }
+
+    private static String[] signingCertificates(PackageInfo info) {
+        android.content.pm.Signature[] signatures;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && info.signingInfo != null) {
+            signatures = info.signingInfo.getApkContentsSigners();
+        } else {
+            signatures = info.signatures;
+        }
+        if (signatures == null) return new String[0];
+        String[] result = new String[signatures.length];
+        for (int index = 0; index < signatures.length; index++) {
+            result[index] = android.util.Base64.encodeToString(signatures[index].toByteArray(), android.util.Base64.NO_WRAP);
+        }
+        Arrays.sort(result);
+        return result;
     }
 
     private void installPendingUpdate() {
@@ -290,14 +466,15 @@ public final class MainActivity extends ComponentActivity {
             installPermissionLauncher.launch(settings);
             return;
         }
-        Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", pendingUpdateApk);
-        Intent install = new Intent(Intent.ACTION_VIEW);
-        install.setDataAndType(uri, "application/vnd.android.package-archive");
-        install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", pendingUpdateApk);
+            Intent install = new Intent(Intent.ACTION_VIEW);
+            install.setDataAndType(uri, "application/vnd.android.package-archive");
+            install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(install);
-        } catch (ActivityNotFoundException error) {
-            reportUpdateCallback("onCowboyUpdateError", JSONObject.quote("No Android package installer is available."));
+        } catch (Exception error) {
+            String message = error.getMessage() == null ? "Could not open the Android package installer." : error.getMessage();
+            reportUpdateCallback("onCowboyUpdateError", JSONObject.quote(message));
         }
     }
 

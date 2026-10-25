@@ -241,6 +241,10 @@
 .android-tools-card .update-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .android-tools-card .update-heading strong{font:750 15px Manrope,sans-serif;color:#2f4333}
 .android-tools-card .update-heading p{flex:none;margin:0;padding:0;border:0;border-radius:0;background:transparent;color:#667164;font-size:11px;font-weight:600;white-space:nowrap}
+.version-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.version-summary>span{display:flex;justify-content:space-between;gap:8px;padding:9px 11px;border-radius:10px;background:#f0f3ef;color:#667164;font-size:12px}
+.version-summary strong{color:#2f4333;font-weight:750}
+.runtime-update-status{background:#f5f6f3}
 
 /* Shared button sizing and right aligned panel actions. */
 .primary-button,.secondary-button,.danger-button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 15px;border-radius:12px;font-size:13px;font-weight:700;line-height:1.2}
@@ -280,5 +284,8 @@ button:disabled{transition:opacity .14s ease}
 .bottom-nav .nav-item.selected,.bottom-nav .nav-item[data-page="todayPage"].selected,.bottom-nav .nav-item[data-page="historyPage"].selected,.bottom-nav .nav-item[data-page="settingsPage"].selected{width:100%;height:auto;min-height:54px;flex:none;border:0;background:transparent;color:var(--green);font-weight:750;box-shadow:none;scale:1}
 .bottom-nav .nav-item.selected span{background:var(--green);color:#fff}
 .bottom-nav .nav-item:focus-visible{outline:2px solid #78947c;outline-offset:-2px}
+.android-tools-card,.runtime-tools-card{margin-bottom:10px}
+.android-update-actions{display:flex;justify-content:flex-end;margin:2px 0 8px}
+.android-update-actions button{min-width:170px}
 .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
 @media(min-width:700px){.bottom-nav{height:66px}.toast{bottom:78px}}

@@ -4,6 +4,24 @@ set -euo pipefail
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO="${COWBOY_RELEASE_REPO:-DefSteam/Cowboy}"
 SOURCE_BRANCH="master"
+MODE="${1:-auto}"
+AUTO_MODE=0
+AUTO_RUNTIME_AFTER_APP=0
+if [[ "$MODE" == "runtime" ]]; then
+    shift
+    exec "$ROOT_DIR/release-runtime.sh" "$@"
+fi
+if [[ "$MODE" == "auto" ]]; then
+    AUTO_MODE=1
+    if [[ "${1:-}" == "auto" ]]; then shift; fi
+elif [[ "$MODE" == "app" || "$MODE" == "apk" ]]; then
+    if [[ "${1:-}" == "$MODE" ]]; then shift; fi
+elif [[ "$MODE" == "--purge-existing-releases" ]]; then
+    MODE="app"
+else
+    echo "Usage: $0 [app|runtime|--purge-existing-releases]" >&2
+    exit 2
+fi
 APK="$ROOT_DIR/app/build/outputs/apk/debug/app-debug.apk"
 PURGE_EXISTING_RELEASES=0
 case "${1:-}" in
@@ -20,6 +38,80 @@ fi
 if ! gh auth status >/dev/null 2>&1; then
     echo "GitHub CLI is not authenticated. Run 'gh auth login' and try again." >&2
     exit 1
+fi
+
+latest_release_tag() {
+    local prefix="$1"
+    gh release list --repo "$REPO" --limit 1000 --json tagName,isDraft,isPrerelease \
+        --jq ".[] | select(.isDraft == false and .isPrerelease == false) | .tagName | select(test(\"^${prefix}[0-9]+[.][0-9]+[.][0-9]+$\"))" \
+        | sort -V | tail -n 1
+}
+
+changed_files_since_tag() {
+    local tag="$1"
+    local ref="$tag"
+    if ! git -C "$ROOT_DIR" rev-parse "$tag^{commit}" >/dev/null 2>&1; then
+        git -C "$ROOT_DIR" fetch --quiet origin "refs/tags/$tag:refs/tags/$tag"
+    fi
+    ref="$(git -C "$ROOT_DIR" rev-parse "$tag^{commit}")"
+    {
+        git -C "$ROOT_DIR" diff --name-only "$ref"...HEAD
+        git -C "$ROOT_DIR" diff --name-only
+        git -C "$ROOT_DIR" diff --cached --name-only
+        git -C "$ROOT_DIR" ls-files --others --exclude-standard
+    } | sort -u
+}
+
+if [[ "$AUTO_MODE" == "1" ]]; then
+    if ! git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Cannot auto-detect release type without a Git checkout. Use ./release.sh app or ./release.sh runtime."
+        exit 2
+    fi
+    APP_TAG="$(latest_release_tag v)"
+    RUNTIME_TAG="$(latest_release_tag runtime-v)"
+    NEED_APP=0
+    NEED_RUNTIME=0
+    if [[ -z "$APP_TAG" ]]; then
+        echo "No previous APK release was found; an app release is required for the first rollout."
+        NEED_APP=1
+    else
+        APP_CHANGES="$(changed_files_since_tag "$APP_TAG")"
+        if printf '%s\n' "$APP_CHANGES" | grep -Eq '^(app/|build\.sh$|build\.gradle\.kts$|settings\.gradle\.kts$|gradle\.properties$|gradle/|gradlew$|gradlew\.bat$)'; then
+            NEED_APP=1
+        fi
+        if [[ -n "$APP_CHANGES" ]] && printf '%s\n' "$APP_CHANGES" | grep -Eq '^web/'; then NEED_RUNTIME=1; fi
+    fi
+    if [[ -z "$RUNTIME_TAG" ]]; then
+        NEED_RUNTIME=1
+    else
+        RUNTIME_CHANGES="$(changed_files_since_tag "$RUNTIME_TAG")"
+        if printf '%s\n' "$RUNTIME_CHANGES" | grep -Eq '^web/'; then NEED_RUNTIME=1; fi
+    fi
+
+    if [[ "$NEED_APP" == "1" ]]; then
+        if [[ ! -t 0 ]]; then
+            echo "Android shell changes require an APK release. Run this command in a terminal to approve or cancel." >&2
+            exit 1
+        fi
+        read -r -p "Android shell changes detected. Build and publish an updated APK? [y/N] " answer
+        case "$answer" in
+            y|Y|yes|YES|Yes) MODE="app"; AUTO_RUNTIME_AFTER_APP="$NEED_RUNTIME" ;;
+            *)
+                if [[ "$NEED_RUNTIME" == "1" ]]; then
+                    echo "Skipping the APK. Publishing the runtime update instead."
+                    exec "$ROOT_DIR/release-runtime.sh"
+                fi
+                echo "Release cancelled. No runtime changes were detected."
+                exit 1
+                ;;
+        esac
+    elif [[ "$NEED_RUNTIME" == "1" ]]; then
+        echo "Only runtime files changed since the latest release; publishing a runtime update."
+        exec "$ROOT_DIR/release-runtime.sh"
+    else
+        echo "No Android shell or runtime changes were found since the latest releases."
+        exit 0
+    fi
 fi
 
 push_local_changes() {
@@ -101,7 +193,7 @@ bump_version() {
 }
 
 if [[ "$PURGE_EXISTING_RELEASES" == "1" ]]; then
-    OLD_RELEASE_TAGS_OUTPUT="$(gh release list --repo "$REPO" --limit 1000 --json tagName --jq '.[].tagName')"
+    OLD_RELEASE_TAGS_OUTPUT="$(gh release list --repo "$REPO" --limit 1000 --json tagName --jq '.[].tagName' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true)"
     OLD_RELEASE_TAGS=()
     if [[ -n "$OLD_RELEASE_TAGS_OUTPUT" ]]; then
         mapfile -t OLD_RELEASE_TAGS <<< "$OLD_RELEASE_TAGS_OUTPUT"
@@ -109,12 +201,7 @@ if [[ "$PURGE_EXISTING_RELEASES" == "1" ]]; then
     if [[ "${#OLD_RELEASE_TAGS[@]}" -gt 0 ]]; then
         bump_version
     fi
-    push_local_changes
-    for old_tag in "${OLD_RELEASE_TAGS[@]}"; do
-        echo "Deleting release $old_tag and its Git tag..."
-        gh release delete "$old_tag" --repo "$REPO" --cleanup-tag --yes
-    done
-    echo "Removed ${#OLD_RELEASE_TAGS[@]} existing releases."
+    echo "Existing releases will be removed only after the replacement APK builds and passes validation."
 fi
 
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
@@ -136,15 +223,50 @@ if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
     fi
 fi
 
-if [[ "$SOURCE_PUSHED" == "0" ]]; then push_local_changes; fi
 "$ROOT_DIR/build.sh" :app:assembleDebug
 if [[ ! -f "$APK" ]]; then
     echo "Build finished but APK was not found at $APK." >&2
     exit 1
 fi
 
+SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+if [[ -z "$SDK_ROOT" || ! -d "$SDK_ROOT/build-tools" ]]; then
+    echo "Could not find Android SDK Build Tools to validate the APK. Set ANDROID_HOME or ANDROID_SDK_ROOT." >&2
+    exit 1
+fi
+BUILD_TOOLS_DIR="$(find "$SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+APKSIGNER="$BUILD_TOOLS_DIR/apksigner"
+APK_ANALYZER="$(find "$SDK_ROOT/cmdline-tools" -type f -path '*/bin/apkanalyzer' 2>/dev/null | sort -V | tail -n 1)"
+if [[ ! -r "$APKSIGNER" || -z "$APK_ANALYZER" || ! -r "$APK_ANALYZER" ]]; then
+    echo "Android SDK is missing readable apksigner or apkanalyzer tools; refusing to publish an unverified APK." >&2
+    exit 1
+fi
+if [[ -x "$APKSIGNER" ]]; then
+    APKSIGNER_COMMAND=("$APKSIGNER")
+else
+    # Some shared SDK installs leave the shell wrapper non-executable. It only needs Bash and its adjacent JAR.
+    APKSIGNER_COMMAND=(bash "$APKSIGNER")
+fi
+"${APKSIGNER_COMMAND[@]}" verify "$APK" >/dev/null
+VERSION_CODE="$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\).*/\1/p' "$ROOT_DIR/app/build.gradle.kts" | head -n 1)"
+APK_PACKAGE="$(sh "$APK_ANALYZER" manifest application-id "$APK")"
+APK_VERSION_NAME="$(sh "$APK_ANALYZER" manifest version-name "$APK")"
+APK_VERSION_CODE="$(sh "$APK_ANALYZER" manifest version-code "$APK")"
+if [[ "$APK_PACKAGE" != "com.cowboy.app" || "$APK_VERSION_NAME" != "$VERSION_NAME" || "$APK_VERSION_CODE" != "$VERSION_CODE" ]]; then
+    echo "Built APK identity/version does not match app/build.gradle.kts; refusing to publish." >&2
+    exit 1
+fi
+
 VERSIONED_APK="$ROOT_DIR/app/build/outputs/apk/debug/Cowboy-$VERSION_NAME.apk"
 cp -- "$APK" "$VERSIONED_APK"
+if [[ "$SOURCE_PUSHED" == "0" ]]; then push_local_changes; fi
+if [[ "$PURGE_EXISTING_RELEASES" == "1" ]]; then
+    for old_tag in "${OLD_RELEASE_TAGS[@]}"; do
+        echo "Deleting release $old_tag and its Git tag..."
+        gh release delete "$old_tag" --repo "$REPO" --cleanup-tag --yes
+    done
+    echo "Removed ${#OLD_RELEASE_TAGS[@]} existing releases."
+fi
 gh release create "$TAG" "$VERSIONED_APK" \
     --repo "$REPO" \
     --target "$RELEASE_TARGET" \
@@ -153,3 +275,7 @@ gh release create "$TAG" "$VERSIONED_APK" \
 rm -f "$VERSIONED_APK"
 
 echo "Published Cowboy $VERSION_NAME to https://github.com/$REPO/releases/tag/$TAG"
+if [[ "$AUTO_RUNTIME_AFTER_APP" == "1" ]]; then
+    echo "Web runtime changes were also detected; publishing the matching runtime bundle."
+    exec "$ROOT_DIR/release-runtime.sh"
+fi

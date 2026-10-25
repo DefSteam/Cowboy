@@ -31,4 +31,4 @@ Settings provides versioned JSON formats:
 
 Each format includes `schemaVersion` (currently `1`) and `exportedAt`. Keep the `format` and `schemaVersion` fields when handling these files. The importer accepts legacy full backups without a format/version as schema version `0`; it also accepts legacy animal exports that are plain arrays of records. Newer unsupported schema versions are rejected with an update message rather than partially imported. When the formats change, increment the relevant schema version in `app.js` and add explicit migration handling for older versions before changing their meaning.
 
-The Android project at the repository root is a small WebView shell around these assets. It provides the Android release updater and debug crash-report sharing without duplicating the feedlot interface or data model.
+The Android project at the repository root is a small native shell around these assets. It provides file access, APK updates, runtime updates, and debug crash-report sharing without duplicating the feedlot interface or data model. Its bundled web files are an offline fallback; signed runtime releases can update the app independently of the APK.

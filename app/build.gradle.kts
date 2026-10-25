@@ -8,6 +8,7 @@ val syncCowboyWebAssets = tasks.register<Sync>("syncCowboyWebAssets") {
     }
     into(layout.buildDirectory.dir("generated/cowboyWebAssets/web"))
 }
+val cowboyRuntimeVersion = rootProject.file("runtime/VERSION").readText().trim()
 
 android {
     namespace = "com.cowboy.app"
@@ -21,8 +22,9 @@ android {
         applicationId = "com.cowboy.app"
         minSdk = 23
         targetSdk = 35
-        versionCode = 44
-        versionName = "0.1.44"
+        versionCode = 45
+        versionName = "0.1.45"
+        buildConfigField("String", "RUNTIME_VERSION", "\"$cowboyRuntimeVersion\"")
     }
 
 }
@@ -38,4 +40,5 @@ androidComponents {
 dependencies {
     implementation("androidx.activity:activity:1.8.0")
     implementation("com.google.android.material:material:1.14.0")
+    implementation("androidx.webkit:webkit:1.14.0")
 }
