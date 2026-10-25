@@ -1,5 +1,5 @@
-const CACHE = 'cowboy-pwa-v43';
-const CORE = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icons/cowboy.svg', './icons/cowboy-192.png', './icons/cowboy-512.png'];
+const CACHE = 'cowboy-pwa-v44';
+const CORE = ['./', './index.html', './styles.css', './i18n.js', './app.js', './manifest.webmanifest', './icons/cowboy.svg', './icons/cowboy-192.png', './icons/cowboy-512.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE))));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))));
 self.addEventListener('fetch', event => {

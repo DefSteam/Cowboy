@@ -16,6 +16,8 @@
 .treat-color-choice.no-tag-choice{width:100%;min-height:62px;background:#d9ded9;color:#303831;font-size:15px}
 .treat-color-choice.selected{outline:3px solid #263f2e;outline-offset:2px;position:relative;z-index:1}
 .treat-color-choice[data-color="White"]{border-color:#d1d8d0}
+.treat-tag-color-choices+#treatTagDetails{margin-top:16px}
+.language-card select{flex:none;min-width:122px;height:42px;padding:0 32px 0 11px;border:1px solid #dce1d9;border-radius:11px;background:#fff;color:var(--ink);font-size:13px;font-weight:650}
 .treat-number-label{margin-top:21px}
 .treat-tag-panel .date-button{margin-top:8px}
 .month-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}

@@ -5,7 +5,7 @@ const CONFIG_FORMAT = 'cowboy-config';
 const DATA_SCHEMA_VERSION = 1;
 const CONFIG_SCHEMA_VERSION = 1;
 const dateKey = date => { const d = date || new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-const prettyDate = key => new Date(`${key}T12:00:00`).toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+const prettyDate = key => new Date(`${key}T12:00:00`).toLocaleDateString(window.CowboyI18n?.locale(),{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 const splitLines = value => value.split('\n').map(s=>s.trim()).filter(Boolean);
 const DEFAULT_CONFIG = {
   archivedSections:{}, sections:{East:['A','22','21','20','8','14','13','12','11','SP','9','E/D','B/C','10','3','4','5','6','7'],West:['1','2/15','17','31','32','33','34','35','36','37','38','40','43','44SP','WSP','45']},
@@ -80,7 +80,7 @@ function renderHistory(){
   const records=state.records;
   if(!historyInitialized){const latest=records.map(r=>r.date).filter(Boolean).sort().at(-1);historySelectedDate=latest||dateKey();const chosen=new Date(`${historySelectedDate}T12:00:00`);historyMonthCursor=new Date(chosen.getFullYear(),chosen.getMonth(),1,12);historyInitialized=true;}
   const year=historyMonthCursor.getFullYear(),month=historyMonthCursor.getMonth(),days=new Date(year,month+1,0).getDate();
-  document.querySelector('#historyMonthLabel').textContent=historyMonthCursor.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  document.querySelector('#historyMonthLabel').textContent=historyMonthCursor.toLocaleDateString(window.CowboyI18n?.locale(),{month:'long',year:'numeric'});
   const grid=document.querySelector('#historyCalendar');grid.innerHTML='';
   ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach((name,index)=>{const label=document.createElement('div');label.className=`history-weekday${index===0||index===6?' weekend':''}`;label.textContent=name;grid.append(label);});
   const firstWeekday=new Date(year,month,1).getDay();
@@ -108,7 +108,7 @@ function renderHistory(){
 function shiftHistoryMonth(amount){historyMonthCursor=new Date(historyMonthCursor.getFullYear(),historyMonthCursor.getMonth()+amount,1,12);const prefix=`${historyMonthCursor.getFullYear()}-${String(historyMonthCursor.getMonth()+1).padStart(2,'0')}`;historySelectedDate=state.records.map(r=>r.date).filter(date=>date?.startsWith(prefix)).sort().at(-1)||null;renderHistory();}
 function renderStorageStatus(){const connection=document.querySelector('#connectionStatus'),dot=document.querySelector('#connectionDot');if(!connection)return;connection.textContent=storageWriteFailed?'Offline · save problem':'Offline';dot.classList.toggle('save-error',storageWriteFailed);}
 function render(){
-  const today=dateKey(),todayDate=new Date();document.querySelector('#todayTitle').textContent=todayDate.toLocaleDateString(undefined,{weekday:'long'});document.querySelector('#todayDate').textContent=todayDate.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
+  const today=dateKey(),todayDate=new Date();document.querySelector('#todayTitle').textContent=todayDate.toLocaleDateString(window.CowboyI18n?.locale(),{weekday:'long'});document.querySelector('#todayDate').textContent=todayDate.toLocaleDateString(window.CowboyI18n?.locale(),{month:'long',day:'numeric',year:'numeric'});
   const checkedTodayRecords=state.records.filter(r=>r.status==='moved'&&r.checkedDate===today);
   const todayRecords=state.records.filter(r=>r.date===today&&r.status!=='removed'&&r.status!=='fine'&&!checkedTodayRecords.includes(r));
   const watchRecords=state.records.filter(r=>r.status==='watch'&&r.followUpDate<=today);
@@ -128,6 +128,9 @@ function render(){
 }
 function selectPage(pageId){ document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===pageId));document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('selected',b.dataset.page===pageId));if(pageId==='historyPage')render(); }
 document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>selectPage(b.dataset.page)));
+document.querySelector('#languageSelect').value=window.CowboyI18n?.language||'en';
+document.querySelector('#languageSelect').addEventListener('change',event=>window.CowboyI18n?.setLanguage(event.target.value));
+window.addEventListener('cowboylanguagechange',render);
 document.querySelector('#historySearch').addEventListener('input',render);
 document.querySelector('#historyPrevMonth').onclick=()=>shiftHistoryMonth(-1);
 document.querySelector('#historyNextMonth').onclick=()=>shiftHistoryMonth(1);
@@ -136,7 +139,7 @@ function chipPicker(node, groups, selected, multi=true, colorPalette=false){
   for(const [title,values] of Object.entries(groups)){
     if(title) node.insertAdjacentHTML('beforeend',`<div class="chip-category">${esc(title)}</div>`);
     const wrap=document.createElement('div');wrap.className='chip-wrap';
-    for(const value of values){const chip=document.createElement('button');chip.type='button';chip.className=`select-chip ${selected.includes(value)?'active':''}`;chip.textContent=value;if(colorPalette){chip.classList.add('color-chip');const palette={black:['#30343b','#fff'],red:['#ef493d','#fff'],gray:['#8d969f','#fff'],grey:['#8d969f','#fff'],brown:['#a65e32','#fff']};const [background,foreground]=palette[value.toLowerCase()]||['hsl('+[...value].reduce((n,c)=>(n*31+c.charCodeAt(0))%360,0)+' 60% 52%)','#fff'];chip.style.backgroundColor=background;chip.style.color=foreground;}chip.onclick=()=>{if(multi){selected.includes(value)?selected.splice(selected.indexOf(value),1):selected.push(value);chip.classList.toggle('active');}else{selected.splice(0,selected.length,value);wrap.querySelectorAll('.select-chip').forEach(c=>c.classList.remove('active'));chip.classList.add('active');}};wrap.append(chip);} node.append(wrap);
+    for(const value of values){const chip=document.createElement('button');chip.type='button';chip.dataset.value=value;chip.className=`select-chip ${selected.includes(value)?'active':''}`;chip.textContent=value;if(colorPalette){chip.classList.add('color-chip');const palette={black:['#30343b','#fff'],red:['#ef493d','#fff'],gray:['#8d969f','#fff'],grey:['#8d969f','#fff'],brown:['#a65e32','#fff']};const [background,foreground]=palette[value.toLowerCase()]||['hsl('+[...value].reduce((n,c)=>(n*31+c.charCodeAt(0))%360,0)+' 60% 52%)','#fff'];chip.style.backgroundColor=background;chip.style.color=foreground;}chip.onclick=()=>{if(multi){selected.includes(value)?selected.splice(selected.indexOf(value),1):selected.push(value);chip.classList.toggle('active');}else{selected.splice(0,selected.length,value);wrap.querySelectorAll('.select-chip').forEach(c=>c.classList.remove('active'));chip.classList.add('active');}};wrap.append(chip);} node.append(wrap);
   }
 }
 function showChoice(title, items, onChoose, sections=false){
@@ -145,7 +148,7 @@ function showChoice(title, items, onChoose, sections=false){
   const paint=()=>{const q=search.value.toLowerCase();content.innerHTML='';for(const [group,values] of Object.entries(items)){const filtered=values.filter(v=>v.toLowerCase().includes(q));if(!filtered.length)continue;if(sections)content.insertAdjacentHTML('beforeend',`<div class="choice-section-title">${esc(group)}</div>`);const grid=document.createElement('div');grid.className=sections?'pen-grid':'choice-list';filtered.forEach(value=>{const button=document.createElement('button');button.type='button';button.className=sections?'pen-option':'choice-option';button.textContent=value;button.onclick=()=>{dialog.close();onChoose(value,group);};grid.append(button);});content.append(grid);}};
   search.oninput=paint;paint();dialog.showModal();
 }
-const treatDateMonths=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const treatDateMonth=month=>new Date(2020,month,1).toLocaleDateString(window.CowboyI18n?.locale(),{month:'long'});
 function showTreatDatePicker(){
   const dialog=document.querySelector('#choiceDialog'),content=document.querySelector('#choiceContent'),search=document.querySelector('#choiceSearch'),back=document.querySelector('#choiceBack');
   search.hidden=true;back.hidden=true;
@@ -159,13 +162,13 @@ function showTreatDatePicker(){
     while(cursor<=lastMonth){
       const month=cursor.getMonth(),year=cursor.getFullYear(),button=document.createElement('button');
       button.type='button';button.className='month-bubble';
-      button.innerHTML=`<span>${treatDateMonths[month]}</span><small>${year}</small>`;
+      button.innerHTML=`<span>${treatDateMonth(month)}</span><small>${year}</small>`;
       button.onclick=()=>paintCalendar(month,year);grid.append(button);
       cursor.setMonth(cursor.getMonth()+1);
     }
   };
   const paintCalendar=(month,year)=>{
-    back.hidden=false;document.querySelector('#choiceTitle').textContent=`${treatDateMonths[month]} ${year}`;
+    back.hidden=false;document.querySelector('#choiceTitle').textContent=`${treatDateMonth(month)} ${year}`;
     content.innerHTML='<div class="calendar-grid"></div>';const grid=content.firstElementChild;
     ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach((day,index)=>{const label=document.createElement('div');label.className=`calendar-weekday${index===0||index===6?' weekend':''}`;label.textContent=day;grid.append(label);});
     const offset=new Date(year,month,1).getDay(),days=new Date(year,month+1,0).getDate();
@@ -174,7 +177,7 @@ function showTreatDatePicker(){
       const date=new Date(year,month,day,12),button=document.createElement('button');
       button.type='button';button.className=`calendar-day${(offset+day-1)%7===0||(offset+day-1)%7===6?' weekend':''}`;button.textContent=day;
       button.disabled=date>today||date<earliest;
-      button.setAttribute('aria-label',date.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}));
+      button.setAttribute('aria-label',date.toLocaleDateString(window.CowboyI18n?.locale(),{weekday:'long',month:'long',day:'numeric',year:'numeric'}));
       button.onclick=()=>{const value=`${month+1}/${day}`;document.querySelector('#treatDateValue').textContent=`Last treated ${value}`;document.querySelector('#treatDateValue').dataset.value=value;dialog.close();};
       grid.append(button);
     }
@@ -189,7 +192,7 @@ const treatTagPalette={none:{background:'#d9ded9',foreground:'#303831'},white:{b
 function renderTreatTagChoices(){const grid=document.querySelector('#treatTagColorGrid');grid.replaceChildren();for(const color of state.config.treatColors){const key=color.toLowerCase(),style=treatTagPalette[key]||{background:CSS.supports('color',color)?color:'#e4e9e3',foreground:'#263126'},button=document.createElement('button');button.type='button';button.className='treat-color-choice';button.dataset.color=color;button.textContent=color;button.style.backgroundColor=style.background;button.style.color=style.foreground;button.setAttribute('aria-pressed','false');button.onclick=()=>{document.querySelector('#treatTagColor').value=color;updateTreatTagFields();};grid.append(button);}}
 function updateTreatTagFields(){const chosen=document.querySelector('#treatTagColor').value;document.querySelector('#treatTagDetails').hidden=!chosen;document.querySelector('#noTreatTag').setAttribute('aria-pressed',String(!chosen));document.querySelector('#noTreatTag').classList.toggle('selected',!chosen);document.querySelectorAll('#treatTagColorGrid .treat-color-choice').forEach(button=>{const selected=button.dataset.color===chosen;button.setAttribute('aria-pressed',String(selected));button.classList.toggle('selected',selected);});if(!chosen){document.querySelector('#treatTagNumber').value='';document.querySelector('#treatDateValue').textContent='';document.querySelector('#treatDateValue').dataset.value='';}}
 document.querySelector('#noTreatTag').addEventListener('click',()=>{document.querySelector('#treatTagColor').value='';updateTreatTagFields();});
-function updateFormChoices(){const diagnoses=Object.keys(state.config.issues);chipPicker(document.querySelector('#diagnosisChips'),{'':diagnoses},diagnosisSelection,false);document.querySelectorAll('#diagnosisChips .select-chip').forEach(chip=>chip.addEventListener('click',()=>{diagnosisSelection.splice(0,diagnosisSelection.length,chip.textContent);issueSelection.length=0;renderSymptoms();}));renderSymptoms();chipPicker(document.querySelector('#appearanceChips'),{'':state.config.appearance},appearanceSelection);renderTreatTagChoices();updateTreatTagFields();}
+function updateFormChoices(){const diagnoses=Object.keys(state.config.issues);chipPicker(document.querySelector('#diagnosisChips'),{'':diagnoses},diagnosisSelection,false);document.querySelectorAll('#diagnosisChips .select-chip').forEach(chip=>chip.addEventListener('click',()=>{diagnosisSelection.splice(0,diagnosisSelection.length,chip.dataset.value);issueSelection.length=0;renderSymptoms();}));renderSymptoms();chipPicker(document.querySelector('#appearanceChips'),{'':state.config.appearance},appearanceSelection);renderTreatTagChoices();updateTreatTagFields();}
 document.querySelector('#changeDiagnosis').onclick=()=>{diagnosisSelection.length=0;issueSelection.length=0;renderSymptoms();};
 document.querySelector('#changeColor').onclick=()=>{document.querySelector('#colorChips').hidden=false;document.querySelector('#colorHeading').textContent='Animal color';document.querySelector('#changeColor').hidden=true;};
 document.querySelector('#newAnimalButton').onclick=()=>{document.querySelector('#animalForm').reset();diagnosisSelection.length=issueSelection.length=appearanceSelection.length=colorSelection.length=0;document.querySelector('#penInput').value='';document.querySelector('#penInput').dataset.section='';document.querySelector('#penHeading').textContent='Pen';document.querySelector('#changePen').hidden=true;document.querySelector('#treatDateValue').textContent='';document.querySelector('#treatDateValue').dataset.value='';updateFormChoices();openPenPicker(()=>document.querySelector('#formDialog').showModal());};
