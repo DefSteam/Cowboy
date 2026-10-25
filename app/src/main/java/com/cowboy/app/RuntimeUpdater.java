@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -34,6 +35,7 @@ final class RuntimeUpdater {
     }
 
     private static final String PREFS = "cowboy_runtime";
+    private static final String RELEASES_API = "https://api.github.com/repos/DefSteam/Cowboy/releases?per_page=100";
     private static final String MANIFEST_URL = "https://raw.githubusercontent.com/DefSteam/Cowboy/master/runtime/latest.json";
     private static final String SIGNATURE_URL = "https://raw.githubusercontent.com/DefSteam/Cowboy/master/runtime/latest.sig";
     private static final int SHELL_API = 1;
@@ -102,11 +104,30 @@ final class RuntimeUpdater {
         status(currentVersion(), "Checking for runtime updates…");
         new Thread(() -> {
             try {
-                byte[] manifestBytes = downloadSmallFile(MANIFEST_URL);
-                byte[] signatureBytes = downloadSmallFile(SIGNATURE_URL);
+                RuntimeRelease latestRelease = null;
+                try {
+                    latestRelease = findLatestRuntimeRelease();
+                } catch (Exception ignored) {
+                    // The signed master pointer is a fallback for GitHub API outages or rate limiting.
+                }
+                byte[] manifestBytes;
+                byte[] signatureBytes;
+                if (latestRelease != null) {
+                    if (latestRelease.manifestUrl == null || latestRelease.signatureUrl == null) {
+                        throw new IllegalStateException("The newest runtime release is missing its signed manifest assets.");
+                    }
+                    manifestBytes = downloadSmallFile(latestRelease.manifestUrl);
+                    signatureBytes = downloadSmallFile(latestRelease.signatureUrl);
+                } else {
+                    manifestBytes = downloadSmallFile(MANIFEST_URL);
+                    signatureBytes = downloadSmallFile(SIGNATURE_URL);
+                }
                 verifyManifestSignature(manifestBytes, signatureBytes);
                 JSONObject manifest = new JSONObject(new String(manifestBytes, StandardCharsets.UTF_8));
                 String version = validateManifest(manifest);
+                if (latestRelease != null && !latestRelease.version.equals(version)) {
+                    throw new IllegalStateException("The runtime manifest version does not match its GitHub release tag.");
+                }
                 String bundleUrl = manifest.getString("bundleUrl");
                 String expectedHash = manifest.getString("sha256").toLowerCase(Locale.ROOT);
                 String installed = currentVersion();
@@ -371,21 +392,77 @@ final class RuntimeUpdater {
     }
 
     private byte[] downloadSmallFile(String urlText) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(urlText + "?t=" + System.currentTimeMillis()).openConnection();
+        String separator = urlText.contains("?") ? "&" : "?";
+        HttpURLConnection connection = (HttpURLConnection) new URL(urlText + separator + "t=" + System.currentTimeMillis()).openConnection();
         connection.setConnectTimeout(15000);
         connection.setReadTimeout(20000);
         connection.setRequestProperty("Cache-Control", "no-cache");
         connection.setRequestProperty("User-Agent", "Cowboy-Android-App");
-        try (InputStream input = connection.getInputStream(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[4096];
-            int length;
-            while ((length = input.read(buffer)) != -1) {
-                if (output.size() + length > 128 * 1024) throw new IllegalStateException("The runtime update information is too large.");
-                output.write(buffer, 0, length);
+        if (urlText.startsWith("https://api.github.com/")) {
+            connection.setRequestProperty("Accept", "application/vnd.github+json");
+        }
+        try {
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) throw new IllegalStateException("GitHub returned HTTP " + status + " while checking runtime releases.");
+            try (InputStream input = connection.getInputStream()) {
+                return readAll(input, urlText.startsWith("https://api.github.com/") ? 2 * 1024 * 1024 : 128 * 1024);
             }
-            return output.toByteArray();
         } finally {
             connection.disconnect();
+        }
+    }
+
+    private RuntimeRelease findLatestRuntimeRelease() throws Exception {
+        RuntimeRelease latest = null;
+        for (int page = 1; page <= 20; page++) {
+            String pageUrl = RELEASES_API + "&page=" + page;
+            JSONArray releases = new JSONArray(new String(downloadSmallFile(pageUrl), StandardCharsets.UTF_8));
+            if (releases.length() == 0) break;
+            for (int index = 0; index < releases.length(); index++) {
+                JSONObject release = releases.getJSONObject(index);
+                if (release.optBoolean("draft") || release.optBoolean("prerelease")) continue;
+                String tag = release.optString("tag_name", "");
+                if (!tag.matches("runtime-v[0-9]+\\.[0-9]+\\.[0-9]+")) continue;
+                String version = tag.substring("runtime-v".length());
+                if (latest != null && compareVersions(version, latest.version) <= 0) continue;
+                String manifestName = "Cowboy-runtime-" + version + ".json";
+                String signatureName = manifestName + ".sig";
+                String manifestUrl = null, signatureUrl = null;
+                JSONArray assets = release.optJSONArray("assets");
+                if (assets != null) {
+                    for (int assetIndex = 0; assetIndex < assets.length(); assetIndex++) {
+                        JSONObject asset = assets.getJSONObject(assetIndex);
+                        String name = asset.optString("name", "");
+                        String url = asset.optString("browser_download_url", "");
+                        if (!isGithubReleaseUrl(url)) continue;
+                        if (manifestName.equals(name)) manifestUrl = url;
+                        if (signatureName.equals(name)) signatureUrl = url;
+                    }
+                }
+                latest = new RuntimeRelease(version, manifestUrl, signatureUrl);
+            }
+        }
+        return latest;
+    }
+
+    private static boolean isGithubReleaseUrl(String value) {
+        try {
+            URL url = new URL(value);
+            return "https".equals(url.getProtocol()) && "github.com".equalsIgnoreCase(url.getHost());
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static final class RuntimeRelease {
+        final String version;
+        final String manifestUrl;
+        final String signatureUrl;
+
+        RuntimeRelease(String version, String manifestUrl, String signatureUrl) {
+            this.version = version;
+            this.manifestUrl = manifestUrl;
+            this.signatureUrl = signatureUrl;
         }
     }
 

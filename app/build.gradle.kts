@@ -22,8 +22,8 @@ android {
         applicationId = "com.cowboy.app"
         minSdk = 23
         targetSdk = 35
-        versionCode = 47
-        versionName = "1.0.1"
+        versionCode = 48
+        versionName = "1.0.2"
         buildConfigField("String", "RUNTIME_VERSION", "\"$cowboyRuntimeVersion\"")
     }
 
