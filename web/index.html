@@ -38,11 +38,12 @@
       <div class="settings-card data-tool-card"><div><strong>Advanced settings</strong><p>Backups, data transfer, and diagnostic tools.</p></div><div class="data-tool-actions"><button class="secondary-button" id="openAdvancedSettings">Open advanced settings</button></div></div>
       <section class="settings-card android-tools-card" id="androidTools" aria-labelledby="androidToolsTitle" hidden>
         <div class="update-heading"><strong id="androidToolsTitle">Cowboy updates</strong></div>
-        <div class="version-summary"><span>App <strong id="androidVersion"></strong><span class="update-check" id="appUpdateCheck" aria-label="Up to date" hidden>✓</span></span><span>Runtime <strong id="runtimeVersion"></strong><span class="update-check" id="runtimeUpdateCheck" aria-label="Up to date" hidden>✓</span></span></div>
-        <div class="update-status" id="updateStatus" role="status" aria-live="polite"></div>
-        <div class="update-status runtime-update-status" id="runtimeUpdateStatus" role="status" aria-live="polite"></div>
-        <div class="update-progress-panel" id="updateProgressPanel" hidden><div class="update-progress-labels"><span id="updateProgressLabel">Downloading app update…</span><span id="updateProgressPercent"></span></div><div class="update-progress-track" role="progressbar" id="updateProgressBar" aria-label="App update download progress" aria-valuemin="0" aria-valuemax="100"><div id="updateProgressFill"></div></div></div>
-        <div class="update-progress-panel" id="runtimeProgressPanel" hidden><div class="update-progress-labels"><span id="runtimeProgressLabel">Downloading runtime…</span><span id="runtimeProgressPercent"></span></div><div class="update-progress-track" role="progressbar" id="runtimeProgressBar" aria-label="Runtime download progress" aria-valuemin="0" aria-valuemax="100"><div id="runtimeProgressFill"></div></div></div>
+        <div class="version-summary">
+          <div class="version-box"><span class="version-label">App <strong id="androidVersion"></strong></span><span class="update-indicator" id="appUpdateCheck" aria-label="Up to date" hidden>✓</span><div class="update-progress-panel" id="updateProgressPanel" hidden><div class="update-progress-track" role="progressbar" id="updateProgressBar" aria-label="App update download progress" aria-valuemin="0" aria-valuemax="100"><div id="updateProgressFill"></div></div></div></div>
+          <div class="version-box"><span class="version-label">Runtime <strong id="runtimeVersion"></strong></span><span class="update-indicator" id="runtimeUpdateCheck" aria-label="Up to date" hidden>✓</span><div class="update-progress-panel" id="runtimeProgressPanel" hidden><div class="update-progress-track" role="progressbar" id="runtimeProgressBar" aria-label="Runtime download progress" aria-valuemin="0" aria-valuemax="100"><div id="runtimeProgressFill"></div></div></div></div>
+        </div>
+        <div class="sr-status" id="updateStatus" role="status" aria-live="polite"></div>
+        <div class="sr-status" id="runtimeUpdateStatus" role="status" aria-live="polite"></div>
         <div class="update-action-row"><div class="android-update-actions runtime-restart-actions" id="runtimeRestartActions" hidden><button class="secondary-button" id="restartRuntimeButton">Restart App</button></div>
         <div class="android-update-actions" id="androidUpdateActions" hidden><button class="primary-button" id="checkUpdatesButton">Check for updates</button></div></div>
       </section>

@@ -294,3 +294,19 @@ button:disabled{transition:opacity .14s ease}
 .update-action-row .android-update-actions button{width:100%;min-width:0;padding-inline:9px;white-space:normal}
 .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
 @media(min-width:700px){.bottom-nav{height:66px}.toast{bottom:78px}}
+
+/* Keep update state inside fixed-size version tiles. */
+.android-tools-card{position:relative}
+.version-summary>.version-box{position:relative;display:flex;align-items:center;justify-content:space-between;height:46px;min-height:46px;padding:0 11px 4px;border-radius:10px;background:#f0f3ef;color:#667164;font-size:12px;overflow:hidden}
+.version-label{display:flex;align-items:baseline;gap:7px;min-width:0}
+.version-summary .update-indicator{flex:none;width:20px;height:20px;display:grid;place-items:center;border-radius:50%;color:#268348;font-size:15px;font-weight:800;line-height:1}
+.version-summary .update-indicator[hidden]{display:none}
+.version-summary .update-indicator.is-available{background:#fff0d1;color:#96600c;font-size:14px}
+.version-summary .update-indicator.is-error{background:#f9e7e4;color:#a33f32;font-size:13px}
+.version-summary .update-indicator.is-checking{border:2px solid #d4e3d6;border-top-color:var(--green);animation:update-spin .75s linear infinite}
+@keyframes update-spin{to{transform:rotate(360deg)}}
+.version-box .update-progress-panel:not([hidden]){position:absolute;left:0;right:0;bottom:0;height:3px;padding:0;border:0;border-radius:0;background:transparent}
+.version-box .update-progress-track{height:3px;border-radius:0;background:#dfe8df}
+.version-box .update-progress-track>div{height:100%;border-radius:0;background:var(--green)}
+.sr-status{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.update-action-row .android-update-actions button{height:42px;min-height:42px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:12px}
